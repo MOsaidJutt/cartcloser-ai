@@ -601,7 +601,7 @@ export default function NewAgentPage() {
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
         throw new Error(err.error ?? "Failed to create agent");
       }
 
