@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  openaiKey     String?
+  // Phase 2 GHL fields
+  ghlApiToken   String?
+  ghlLocationId String?
+  agents        Agent[]
+  createdAt     DateTime @default(now())
+}
+
+model Agent {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  storeName       String
+  storeUrl        String
+  storeLogo       String?
+  currency        String    @default("$")
+  botName         String
+  openingMessage  String
+  couponCode      String?
+  couponDiscount  String?
+  tone            String    @default("casual")
+  systemPrompt    String
+  knowledgeBase   String
+  productCount    Int       @default(0)
+  demoViews       Int       @default(0)   // incremented every time someone opens the demo
+  status          String    @default("building")
+  // Phase 2 GHL fields (DB ready, not used in Phase 1)
+  ghlAgentId      String?
+  ghlWorkflowId   String?
+  ghlDeployed     Boolean   @default(false)
+  ghlDeployedAt   DateTime?
+  conversations   Conversation[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Conversation {
+  id          String    @id @default(cuid())
+  agentId     String
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  visitorName String
+  productName String?   // product shown in opening message
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String       // "user" | "assistant"
+  content        String
+  createdAt      DateTime     @default(now())
+}
