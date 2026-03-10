@@ -352,7 +352,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return Response.json({ error: "Conversation not found" }, { status: 404 });
     }
 
-    const userMessageCount = conversation.messages.filter((m) => m.role === "user").length;
+    const userMessageCount = conversation.messages.filter((m: { role: string }) => m.role === "user").length;
     if (userMessageCount >= MAX_MESSAGES_PER_CONVERSATION) {
       return Response.json(
         { error: "Message limit reached for this demo conversation" },
