@@ -366,7 +366,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Keep only the last 10 messages (5 exchanges) — prevents runaway token growth
     const recentMessages = conversation.messages.slice(-10);
-    const history: OpenAI.Chat.ChatCompletionMessageParam[] = recentMessages.map((m) => ({
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = recentMessages.map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
@@ -402,9 +402,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Inject the last 2 bot replies so the model can explicitly avoid repeating them
     const recentBotReplies = conversation.messages
-      .filter((m) => m.role === "assistant")
+      .filter((m: { role: string; content: string }) => m.role === "assistant")
       .slice(-2)
-      .map((m) => `"${m.content.slice(0, 200)}"`)
+      .map((m: { role: string; content: string }) => `"${m.content.slice(0, 200)}"`)
       .join("\n");
 
     if (recentBotReplies) {
