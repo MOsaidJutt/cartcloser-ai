@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+
+export const maxDuration = 300; // 5 minutes — required for long agent builds on Vercel
 import { getSessionUser, unauthorized } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { scrapeShopifyStore } from "@/lib/scraper";
