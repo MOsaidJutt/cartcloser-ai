@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // do NOT send a follow-up — they're clearly done. Return a silent done event.
     const lastUserMsg = [...conversation.messages]
       .reverse()
-      .find((m) => m.role === "user")?.content ?? "";
+      .find((m: { role: string; content: string }) => m.role === "user")?.content ?? "";
 
     if (CONV_DONE_RE.test(lastUserMsg)) {
       const encoder = new TextEncoder();
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const client = new OpenAI({ apiKey });
 
     // Last 10 messages only — follow-ups only need recent context
-    const history: OpenAI.Chat.ChatCompletionMessageParam[] = conversation.messages.slice(-10).map((m) => ({
+    const history: OpenAI.Chat.ChatCompletionMessageParam[] = conversation.messages.slice(-10).map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Extract last assistant message to avoid repeating it
     const lastBotMsg = [...conversation.messages]
       .reverse()
-      .find((m) => m.role === "assistant")?.content ?? "";
+      .find((m: { role: string; content: string }) => m.role === "assistant")?.content ?? "";
 
     // Each follow-up takes a genuinely different approach
     const approaches: Record<number, string> = {
