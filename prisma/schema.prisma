@@ -40,6 +40,7 @@ model Agent {
   knowledgeBase   String
   productCount    Int       @default(0)
   demoViews       Int       @default(0)   // incremented every time someone opens the demo
+  conversions     Int       @default(0)   // incremented every time a visitor clicks a checkout/product link
   status          String    @default("building")
   // Phase 2 GHL fields (DB ready, not used in Phase 1)
   ghlAgentId      String?

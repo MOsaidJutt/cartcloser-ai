@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CartCloser AI",
-  description: "AI-powered abandoned cart recovery demo platform",
+  title: "SMS2Cart.com",
+  description: "AI-powered SMS cart recovery demo platform",
 };
 
 export default function RootLayout({

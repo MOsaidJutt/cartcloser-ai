@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
       botName: true,
       productCount: true,
       demoViews: true,
+      conversions: true,
       status: true,
       ghlDeployed: true,
       createdAt: true,

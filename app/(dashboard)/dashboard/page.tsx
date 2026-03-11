@@ -13,6 +13,7 @@ interface Agent {
   botName: string;
   productCount: number;
   demoViews: number;
+  conversions: number;
   status: string;
   ghlDeployed: boolean;
   createdAt: string;
@@ -95,7 +96,7 @@ export default function DashboardPage() {
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <h1 className="text-xl font-bold">
-            Cart<span className="text-indigo-400">Closer</span> AI
+            SMS2<span className="text-indigo-400">Cart</span>.com
           </h1>
           <div className="flex items-center gap-3">
             <Link
@@ -201,6 +202,12 @@ export default function DashboardPage() {
                       className="text-xs bg-green-900/30 text-green-400 border border-green-800/30 px-2.5 py-1 rounded-full"
                     >
                       💬 {agent._count?.conversations ?? 0} chats
+                    </span>
+                    <span
+                      title="Checkout / product link clicks"
+                      className="text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-800/30 px-2.5 py-1 rounded-full"
+                    >
+                      🛒 {agent.conversions ?? 0} conversions
                     </span>
                     <span className="text-xs text-gray-600 ml-auto">
                       {new Date(agent.createdAt).toLocaleDateString()}

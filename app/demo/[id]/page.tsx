@@ -92,7 +92,7 @@ function TypingIndicator({ avatarInitial }: { avatarInitial: string }) {
 // ─── LINK RENDERER ───────────────────────────────────────────────────────────
 // Turns plain-text URLs inside a message into tappable anchor tags.
 
-function renderWithLinks(text: string, isUser: boolean) {
+function renderWithLinks(text: string, isUser: boolean, onLinkClick?: () => void) {
   const urlRegex = /https?:\/\/[^\s]+/g;
   const parts: React.ReactNode[] = [];
   let last = 0;
@@ -112,7 +112,10 @@ function renderWithLinks(text: string, isUser: boolean) {
         className={`underline underline-offset-2 break-all ${
           isUser ? "text-blue-100 hover:text-white" : "text-indigo-600 hover:text-indigo-800"
         }`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isUser && onLinkClick) onLinkClick();
+        }}
       >
         {url}
       </a>
@@ -126,7 +129,7 @@ function renderWithLinks(text: string, isUser: boolean) {
 
 // ─── MESSAGE BUBBLE ──────────────────────────────────────────────────────────
 
-function MessageBubble({ message, avatarInitial }: { message: Message; avatarInitial: string }) {
+function MessageBubble({ message, avatarInitial, onLinkClick }: { message: Message; avatarInitial: string; onLinkClick?: () => void }) {
   const isUser = message.role === "user";
 
   return (
@@ -149,7 +152,7 @@ function MessageBubble({ message, avatarInitial }: { message: Message; avatarIni
               : "bg-gray-100 text-gray-900 rounded-bl-sm"
           }`}
         >
-          {renderWithLinks(message.content, isUser)}
+          {renderWithLinks(message.content, isUser, isUser ? undefined : onLinkClick)}
         </div>
         <span className="text-[10px] text-gray-400 mt-1 px-1 flex items-center gap-1.5">
           {formatTime(message.timestamp)}
@@ -262,7 +265,7 @@ function LandingScreen({ agent, onStart }: { agent: AgentInfo; onStart: (name: s
         transition={{ delay: 0.5 }}
         className="text-xs text-gray-400 mt-8"
       >
-        Powered by CartCloser AI
+        Powered by SMS2Cart.com
       </motion.p>
     </div>
   );
@@ -285,6 +288,9 @@ function ChatScreen({
   streamingContent: string;
   responseTimer: number;
 }) {
+  const trackConversion = useCallback(() => {
+    fetch(`/api/track/${agent.id}/conversion`, { method: "POST" }).catch(() => {});
+  }, [agent.id]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -327,7 +333,7 @@ function ChatScreen({
       {/* Messages — scrollable */}
       <div className="flex-1 overflow-y-auto px-4 py-3 bg-white min-h-0">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} avatarInitial={avatarInitial} />
+          <MessageBubble key={msg.id} message={msg} avatarInitial={avatarInitial} onLinkClick={trackConversion} />
         ))}
 
         {/* Streaming bubble */}
@@ -389,7 +395,7 @@ function ChatScreen({
             </svg>
           </button>
         </form>
-        <p className="text-center text-[10px] text-gray-300 mt-1">Powered by CartCloser AI</p>
+        <p className="text-center text-[10px] text-gray-300 mt-1">Powered by SMS2Cart.com</p>
       </div>
     </div>
   );
