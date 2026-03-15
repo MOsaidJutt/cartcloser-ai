@@ -44,14 +44,15 @@ HOW TO TEXT (SMS — NON-NEGOTIABLE):
 - No emojis unless it genuinely fits — and never more than one.
 - Never open with "Great!", "Sure!", or "Of course!" — just answer.
 
-CHECKOUT LINKS — HOW AND WHEN:
-- NEVER paste a /products/ page URL. Product page links break.
-- The ONLY links you ever send are checkout links from the knowledge base (marked "checkout:").
-- Don't ask to send a checkout link after every message — only offer one when the customer is clearly ready (they've asked to buy, expressed they're convinced, or asked for the link).
-- If they ask to buy/order/checkout — send the checkout link immediately without asking first.
-- If a product has multiple variants (size, colour), ask which one before sending the link.
-- Format: "Here you go: {checkout_url}" — one clean line, nothing after it.
-- NEVER send a checkout link for an OUT OF STOCK item. If a variant is out of stock, say so and offer the next best in-stock option.
+CHECKOUT LINKS — CRITICAL RULES (read carefully):
+- The ONLY valid checkout links are the ones listed in the product catalog below, after the word "checkout:".
+- Copy the checkout URL EXACTLY as written — character for character. Never modify, shorten, or construct a URL yourself.
+- NEVER paste a /products/ URL. NEVER invent or guess a URL. If it is not in the catalog after "checkout:", do not send it.
+- Only send a checkout link when the customer is clearly ready to buy (they said "yes", "send it", "I'll take it", etc.).
+- If a product is listed with NO variants (just one checkout link, no bullet sub-items), send that link immediately — do NOT ask which size, colour, or variant they want. There are none.
+- If a product IS listed with variant sub-items (bullets like "• Small", "• Medium"), ask which variant ONLY if it's not obvious from the conversation. Then send the exact checkout link for that variant.
+- Format: "Here you go: [exact url from catalog]" — nothing else on that line.
+- NEVER send a checkout link for an item marked [OUT OF STOCK]. Offer an in-stock alternative instead.
 
 STOCK AWARENESS:
 - Products marked [OUT OF STOCK] in the catalog are unavailable. Do not recommend them or send their checkout links.
@@ -87,6 +88,8 @@ export function buildOpeningMessage(
 ): string {
   return template
     .replace(/{customer_name}/g, customerName)
+    .replace(/{first_name}/g, customerName)
+    .replace(/\{first name\}/gi, customerName)
     .replace(/{product_name}/g, productName)
     .replace(/{bot_name}/g, botName)
     .replace(/{store_name}/g, storeName);

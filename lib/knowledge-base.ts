@@ -35,12 +35,17 @@ function buildCatalogSection(data: ScrapedStore): string {
     const stock = p.available ? "" : " [OUT OF STOCK]";
     const defaultCheckout = p.checkoutUrl ?? p.productUrl;
 
-    if (p.variants.length <= 1) {
+    // Filter out Shopify's placeholder "Default Title" — that means no real variants
+    const realVariants = p.variants.filter(
+      (v) => v.title && v.title.toLowerCase() !== "default title"
+    );
+
+    if (realVariants.length <= 1) {
       lines.push(`- ${p.title}: $${p.price}${sale}${stock} | checkout: ${defaultCheckout}`);
     } else {
-      // List every variant with its own checkout URL and stock status
+      // List every real variant with its own checkout URL and stock status
       lines.push(`- ${p.title}: from $${p.price}${sale}${stock}`);
-      for (const v of p.variants) {
+      for (const v of realVariants) {
         const co = baseUrl ? `${baseUrl}/cart/${v.id}:1` : defaultCheckout;
         const variantStock = v.available ? "" : " [OUT OF STOCK]";
         lines.push(`  • ${v.title} — $${v.price}${variantStock} | checkout: ${co}`);

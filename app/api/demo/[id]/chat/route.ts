@@ -237,14 +237,28 @@ async function searchProductsJson(baseUrl: string, words: string[]): Promise<any
 }
 
 function formatProduct(product: any, baseUrl: string): string {
-  const variantLines = (product.variants ?? [])
+  const allVariants: any[] = product.variants ?? [];
+  // Filter out Shopify's placeholder "Default Title" — that means no real variants
+  const realVariants = allVariants.filter(
+    (v: any) => v.title && v.title.toLowerCase() !== "default title"
+  );
+  const price = allVariants[0]?.price ?? "N/A";
+  const available = allVariants.some((v: any) => v.available !== false);
+  const firstVariant = allVariants[0];
+
+  if (realVariants.length === 0) {
+    // No real variants — single checkout link, no variant question needed
+    const stock = available ? "" : " [OUT OF STOCK]";
+    const co = firstVariant ? `${baseUrl}/cart/${firstVariant.id}:1` : "";
+    return `[LIVE PRODUCT DATA — ${product.title}]\nPrice: $${price}${stock}\ncheckout: ${co}\nNote: This product has no variants — send the checkout link directly, do not ask about size/colour/variant.`;
+  }
+
+  const variantLines = realVariants
     .map((v: any) => {
       const stock = v.available !== false ? "" : " [OUT OF STOCK]";
       return `  • ${v.title}: $${v.price}${stock} | checkout: ${baseUrl}/cart/${v.id}:1`;
     })
     .join("\n");
-  const price = product.variants?.[0]?.price ?? "N/A";
-  const available = product.variants?.some((v: any) => v.available !== false) ?? true;
   return `[LIVE PRODUCT DATA — ${product.title}]\nPrice: from $${price}\nIn stock: ${available ? "yes" : "no"}\nVariants:\n${variantLines}`;
 }
 
