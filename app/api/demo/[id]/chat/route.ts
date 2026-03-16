@@ -69,7 +69,9 @@ async function sanitizeLinks(text: string, baseUrl: string): Promise<string> {
     try {
       const parsed = new URL(u);
       if (parsed.hostname !== storeDomain) return false;
-      if (/^\/cart\/\d+:\d+$/.test(parsed.pathname)) return false; // real cart URL — skip check
+      // Only skip real Shopify cart URLs — variant IDs are 10+ digits
+      const cartMatch = parsed.pathname.match(/^\/cart\/(\d+):\d+$/);
+      if (cartMatch && cartMatch[1].length >= 10) return false; // real cart URL — skip check
       return true;
     } catch {
       return false;
@@ -120,7 +122,9 @@ function enforceCartUrls(text: string, baseUrl: string): string {
     try {
       const parsed = new URL(url);
       if (parsed.hostname !== domain) return urlRaw; // not store domain — keep
-      if (/^\/cart\/\d+:\d+$/.test(parsed.pathname)) return urlRaw; // valid cart URL — keep
+      // Real Shopify variant IDs are 10+ digits — reject short/fake IDs like 12345678
+      const cartMatch = parsed.pathname.match(/^\/cart\/(\d+):\d+$/);
+      if (cartMatch && cartMatch[1].length >= 10) return urlRaw; // valid cart URL — keep
       // Invalid store URL (AI-constructed) — remove it
       return "";
     } catch {
