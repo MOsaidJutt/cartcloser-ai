@@ -63,13 +63,13 @@ async function sanitizeLinks(text: string, baseUrl: string): Promise<string> {
   const urlRegex = /https?:\/\/[^\s,)"']+/g;
   const allUrls = [...new Set(text.match(urlRegex) ?? [])];
 
-  // Only check URLs on the store's own domain — skip /cart/ and /checkout/ URLs
-  // because they require a session cookie and will always fail HEAD checks
+  // Only check URLs on the store's own domain — skip real /cart/{id}:{qty} URLs
+  // (those require a session cookie) but DO validate fake /checkout/product-slug URLs
   const storeUrls = allUrls.filter((u) => {
     try {
       const parsed = new URL(u);
       if (parsed.hostname !== storeDomain) return false;
-      if (/\/(cart|checkout)\//i.test(parsed.pathname)) return false; // never validate these
+      if (/^\/cart\/\d+:\d+$/.test(parsed.pathname)) return false; // real cart URL — skip check
       return true;
     } catch {
       return false;
@@ -99,6 +99,36 @@ async function sanitizeLinks(text: string, baseUrl: string): Promise<string> {
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Strips any store-domain URL that is NOT a valid /cart/{variantId}:{qty} format.
+ * The AI sometimes constructs fake checkout URLs like /checkout/product-name — these never work.
+ * Only real Shopify cart URLs (/cart/12345678:1) are allowed through.
+ */
+function enforceCartUrls(text: string, baseUrl: string): string {
+  if (!baseUrl) return text;
+  let domain: string;
+  try {
+    domain = new URL(baseUrl).hostname;
+  } catch {
+    return text;
+  }
+
+  return text.replace(/https?:\/\/[^\s,)"']+/g, (urlRaw) => {
+    const url = urlRaw.replace(/[.,!?]+$/, "");
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname !== domain) return urlRaw; // not store domain — keep
+      if (/^\/cart\/\d+:\d+$/.test(parsed.pathname)) return urlRaw; // valid cart URL — keep
+      // Invalid store URL (AI-constructed) — remove it
+      return "";
+    } catch {
+      return urlRaw;
+    }
+  }).replace(/Here you go:\s*[.,]?\s*$/gim, "Let me get that link — just a moment.")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 // ─── INTENT → URL CANDIDATES ─────────────────────────────────────────────────
@@ -455,8 +485,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
           const rawResponse = response.choices[0]?.message?.content ?? "";
 
-          // Validate any store URLs in the response — strip 404s before showing customer
-          const fullResponse = await sanitizeLinks(rawResponse, baseUrl);
+          // Step 1: Strip any AI-constructed store URLs that aren't valid /cart/{id}:{qty} format
+          const cartEnforced = enforceCartUrls(rawResponse, baseUrl);
+
+          // Step 2: Validate remaining store URLs — strip any that return 404
+          const fullResponse = await sanitizeLinks(cartEnforced, baseUrl);
 
           // Stream character-by-character for natural human typing feel
           for (const char of fullResponse) {

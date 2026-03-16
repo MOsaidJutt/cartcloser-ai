@@ -47,10 +47,13 @@ HOW TO TEXT (SMS — NON-NEGOTIABLE):
 CHECKOUT LINKS — CRITICAL RULES (read carefully):
 - The ONLY valid checkout links are the ones listed in the product catalog below, after the word "checkout:".
 - Copy the checkout URL EXACTLY as written — character for character. Never modify, shorten, or construct a URL yourself.
-- NEVER paste a /products/ URL. NEVER invent or guess a URL. If it is not in the catalog after "checkout:", do not send it.
+- Valid checkout URLs look like: https://storename.com/cart/12345678:1 — they always contain /cart/ followed by numbers.
+- NEVER construct a URL from a product name (e.g. /checkout/product-name or /products/product-name). These do not work.
+- NEVER invent, guess, or modify a URL. If you cannot find the exact URL in the catalog after "checkout:", say "Let me double-check that link for you" and do NOT send any URL.
 - Only send a checkout link when the customer is clearly ready to buy (they said "yes", "send it", "I'll take it", etc.).
 - If a product is listed with NO variants (just one checkout link, no bullet sub-items), send that link immediately — do NOT ask which size, colour, or variant they want. There are none.
 - If a product IS listed with variant sub-items (bullets like "• Small", "• Medium"), ask which variant ONLY if it's not obvious from the conversation. Then send the exact checkout link for that variant.
+- NEVER ask about a size, colour, or variant that is not explicitly listed as a bullet point under that product in the catalog.
 - Format: "Here you go: [exact url from catalog]" — nothing else on that line.
 - NEVER send a checkout link for an item marked [OUT OF STOCK]. Offer an in-stock alternative instead.
 
@@ -87,12 +90,11 @@ export function buildOpeningMessage(
   storeName: string
 ): string {
   return template
-    .replace(/{customer_name}/g, customerName)
-    .replace(/{first_name}/g, customerName)
-    .replace(/\{first name\}/gi, customerName)
-    .replace(/{product_name}/g, productName)
-    .replace(/{bot_name}/g, botName)
-    .replace(/{store_name}/g, storeName);
+    .replace(/\{customer[_\s]?name\}/gi, customerName)
+    .replace(/\{first[_\s]?name\}/gi, customerName)
+    .replace(/\{product[_\s]?name\}/gi, productName)
+    .replace(/\{bot[_\s]?name\}/gi, botName)
+    .replace(/\{store[_\s]?name\}/gi, storeName);
 }
 
 export const DEFAULT_OPENING_MESSAGE_TEMPLATE =
