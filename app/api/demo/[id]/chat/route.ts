@@ -135,6 +135,59 @@ function enforceCartUrls(text: string, baseUrl: string): string {
     .trim();
 }
 
+// ─── CATALOG LINK RESOLVER ────────────────────────────────────────────────────
+// When enforceCartUrls strips a bad URL, we fall back to a direct catalog scan.
+// This guarantees the customer always gets a real checkout link.
+
+interface CatalogEntry { label: string; url: string }
+
+function parseCatalogLinks(systemPrompt: string): CatalogEntry[] {
+  const entries: CatalogEntry[] = [];
+  const lines = systemPrompt.split("\n");
+  let currentProduct = "";
+
+  for (const line of lines) {
+    // Single-variant product: "- Title: $XX | checkout: URL"
+    const singleMatch = line.match(/^- (.+?)(?:\s*\[.*?])?\s*:.*?\|\s*checkout:\s*(https?:\/\/\S+)/);
+    if (singleMatch) {
+      currentProduct = singleMatch[1].trim();
+      entries.push({ label: currentProduct.toLowerCase(), url: singleMatch[2] });
+      continue;
+    }
+    // Multi-variant header: "- Title: from $XX"
+    const headerMatch = line.match(/^- (.+?)(?:\s*\[.*?])?\s*:/);
+    if (headerMatch) {
+      currentProduct = headerMatch[1].trim();
+      continue;
+    }
+    // Variant line: "  • Variant — $XX | checkout: URL"
+    const variantMatch = line.match(/^\s+•\s+(.+?)\s+—.*?\|\s*checkout:\s*(https?:\/\/\S+)/);
+    if (variantMatch && currentProduct) {
+      const variantName = variantMatch[1].trim();
+      entries.push({ label: `${currentProduct} ${variantName}`.toLowerCase(), url: variantMatch[2] });
+      entries.push({ label: variantName.toLowerCase(), url: variantMatch[2] });
+    }
+  }
+  return entries;
+}
+
+/**
+ * Finds the best checkout URL from the catalog by matching keywords
+ * from the recent conversation. Returns null if no confident match found.
+ */
+function findBestCheckoutUrl(recentText: string, entries: CatalogEntry[]): string | null {
+  const text = recentText.toLowerCase();
+  // Sort by label length descending — prefer more specific matches
+  const sorted = [...entries].sort((a, b) => b.label.length - a.label.length);
+  for (const entry of sorted) {
+    const words = entry.label.split(/\s+/).filter((w) => w.length > 2);
+    if (words.length === 0) continue;
+    const hits = words.filter((w) => text.includes(w)).length;
+    if (hits >= Math.min(2, words.length)) return entry.url;
+  }
+  return null;
+}
+
 // ─── INTENT → URL CANDIDATES ─────────────────────────────────────────────────
 // Maps customer question topics to candidate page paths to try on the store.
 // We try each path in order and use the first one that returns content.
@@ -493,7 +546,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           const cartEnforced = enforceCartUrls(rawResponse, baseUrl);
 
           // Step 2: Validate remaining store URLs — strip any that return 404
-          const fullResponse = await sanitizeLinks(cartEnforced, baseUrl);
+          let fullResponse = await sanitizeLinks(cartEnforced, baseUrl);
+
+          // Step 3: If the AI intended to send a checkout link but produced a bad URL,
+          // recover by doing a direct catalog scan using recent conversation context.
+          const linkStripped = /Let me get that link — just a moment/i.test(fullResponse) ||
+            /Here you go:\s*$/i.test(fullResponse);
+          if (linkStripped && agent.systemPrompt) {
+            const catalogEntries = parseCatalogLinks(agent.systemPrompt);
+            const recentText = history.slice(-6).map((m) => m.content as string).join(" ");
+            const correctUrl = findBestCheckoutUrl(recentText, catalogEntries);
+            if (correctUrl) {
+              fullResponse = fullResponse
+                .replace(/Let me get that link — just a moment\.?/i, `Here you go: ${correctUrl}`)
+                .replace(/Here you go:\s*$/i, `Here you go: ${correctUrl}`);
+            }
+          }
 
           // Stream character-by-character for natural human typing feel
           for (const char of fullResponse) {
