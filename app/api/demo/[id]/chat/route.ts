@@ -513,6 +513,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         `\n\n---\nYOUR RECENT REPLIES (do NOT repeat or paraphrase any of these):\n${recentBotReplies}\n---`;
     }
 
+    // ── Proactive checkout URL injection ──────────────────────────────────────
+    // If the customer is asking for a link, find the correct URL from the catalog
+    // and tell the AI EXACTLY what URL to use — no guessing, no construction.
+    const lastUserMsg = history.filter((m) => m.role === "user").slice(-1)[0]?.content as string ?? "";
+    const wantsLink = /\b(link|url|buy|purchase|order|checkout|get it|send|give|yes|ok|okay|sure|please|now)\b/i.test(lastUserMsg);
+    if (wantsLink) {
+      const catalogEntries = parseCatalogLinks(agent.systemPrompt);
+      const recentText = history.slice(-8).map((m) => m.content as string).join(" ");
+      const correctUrl = findBestCheckoutUrl(recentText, catalogEntries);
+      if (correctUrl) {
+        systemPrompt += `\n\n---\nCHECKOUT URL INSTRUCTION: The customer wants to purchase now. Send them this exact URL — copy it character for character, do not change anything: ${correctUrl}\nYour response must include: "Here you go: ${correctUrl}"\n---`;
+      }
+    }
+
     const encoder = new TextEncoder();
     const delay = thinkingDelay();
 
