@@ -25,115 +25,6 @@ function charDelay(char: string): number {
 // Checks every store URL in a response. Removes any that return 404 so the bot
 // never sends a broken link to the customer.
 
-async function checkUrl(url: string): Promise<"ok" | "dead"> {
-  try {
-    const res = await axios.head(url, {
-      timeout: 4000,
-      maxRedirects: 3,
-      validateStatus: () => true, // don't throw on any status
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-      },
-    });
-    // 404 = definitely dead. Anything else (200, 301, 302, 403…) = reachable.
-    return res.status === 404 ? "dead" : "ok";
-  } catch {
-    // Network error — don't remove the link, might be a temporary blip
-    return "ok";
-  }
-}
-
-/**
- * Removes any store-domain URLs from `text` that return 404.
- * Cart/checkout URLs that are dead get removed entirely.
- * All checks run in parallel to keep latency low.
- */
-async function sanitizeLinks(text: string, baseUrl: string): Promise<string> {
-  if (!baseUrl) return text;
-
-  let storeDomain: string;
-  try {
-    storeDomain = new URL(baseUrl).hostname;
-  } catch {
-    return text;
-  }
-
-  // Match all URLs in the text
-  const urlRegex = /https?:\/\/[^\s,)"']+/g;
-  const allUrls = [...new Set(text.match(urlRegex) ?? [])];
-
-  // Only check URLs on the store's own domain — skip real /cart/{id}:{qty} URLs
-  // (those require a session cookie) but DO validate fake /checkout/product-slug URLs
-  const storeUrls = allUrls.filter((u) => {
-    try {
-      const parsed = new URL(u);
-      if (parsed.hostname !== storeDomain) return false;
-      // Only skip real Shopify cart URLs — variant IDs are 10+ digits
-      const cartMatch = parsed.pathname.match(/^\/cart\/(\d+):\d+$/);
-      if (cartMatch && cartMatch[1].length >= 10) return false; // real cart URL — skip check
-      return true;
-    } catch {
-      return false;
-    }
-  });
-
-  if (storeUrls.length === 0) return text;
-
-  // Check all in parallel
-  const results = await Promise.all(
-    storeUrls.map(async (url) => ({ url, status: await checkUrl(url) }))
-  );
-
-  let cleaned = text;
-  for (const { url, status } of results) {
-    if (status === "dead") {
-      // Remove the URL and clean up any trailing punctuation/whitespace around it
-      cleaned = cleaned
-        .replace(new RegExp(`\\s*${escapeRegex(url)}[.,!?]*`, "g"), "")
-        .replace(/\s{2,}/g, " ")
-        .trim();
-    }
-  }
-
-  return cleaned;
-}
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
- * Strips any store-domain URL that is NOT a valid /cart/{variantId}:{qty} format.
- * The AI sometimes constructs fake checkout URLs like /checkout/product-name — these never work.
- * Only real Shopify cart URLs (/cart/12345678:1) are allowed through.
- */
-function enforceCartUrls(text: string, baseUrl: string): string {
-  if (!baseUrl) return text;
-  let domain: string;
-  try {
-    domain = new URL(baseUrl).hostname;
-  } catch {
-    return text;
-  }
-
-  return text.replace(/https?:\/\/[^\s,)"']+/g, (urlRaw) => {
-    const url = urlRaw.replace(/[.,!?]+$/, "");
-    try {
-      const parsed = new URL(url);
-      if (parsed.hostname !== domain) return urlRaw; // not store domain — keep
-      // Real Shopify variant IDs are 10+ digits — reject short/fake IDs like 12345678
-      const cartMatch = parsed.pathname.match(/^\/cart\/(\d+):\d+$/);
-      if (cartMatch && cartMatch[1].length >= 10) return urlRaw; // valid cart URL — keep
-      // Invalid store URL (AI-constructed) — remove it
-      return "";
-    } catch {
-      return urlRaw;
-    }
-  }).replace(/Here you go:\s*[.,]?\s*$/gim, "Let me get that link — just a moment.")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
 
 // ─── CATALOG LINK RESOLVER ────────────────────────────────────────────────────
 // When enforceCartUrls strips a bad URL, we fall back to a direct catalog scan.
@@ -172,20 +63,28 @@ function parseCatalogLinks(systemPrompt: string): CatalogEntry[] {
 }
 
 /**
- * Finds the best checkout URL from the catalog by matching keywords
- * from the recent conversation. Returns null if no confident match found.
+ * Finds the best checkout URL from the catalog by matching keywords.
+ * Uses ratio scoring — percentage of label words found in context.
+ * Returns null if no confident match found (score < 50%).
  */
 function findBestCheckoutUrl(recentText: string, entries: CatalogEntry[]): string | null {
   const text = recentText.toLowerCase();
-  // Sort by label length descending — prefer more specific matches
-  const sorted = [...entries].sort((a, b) => b.label.length - a.label.length);
-  for (const entry of sorted) {
+  let bestEntry: CatalogEntry | null = null;
+  let bestScore = 0;
+
+  for (const entry of entries) {
     const words = entry.label.split(/\s+/).filter((w) => w.length > 2);
     if (words.length === 0) continue;
     const hits = words.filter((w) => text.includes(w)).length;
-    if (hits >= Math.min(2, words.length)) return entry.url;
+    const score = hits / words.length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestEntry = entry;
+    }
   }
-  return null;
+
+  // Require at least 50% of label words to match
+  return bestScore >= 0.5 ? bestEntry!.url : null;
 }
 
 // ─── INTENT → URL CANDIDATES ─────────────────────────────────────────────────
@@ -488,13 +387,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       baseUrl ? proactiveFetch(baseUrl, message.trim()) : Promise.resolve(null),
     ]);
 
-    // Build system prompt — cap KB at ~20K chars so we stay safely under TPM limits.
-    // The knowledge base is at the END of systemPrompt, so truncation cuts excess products,
-    // not the persona/rules at the top which are most important.
-    const MAX_SYSTEM_CHARS = 20000;
-    let systemPrompt = agent.systemPrompt.length > MAX_SYSTEM_CHARS
-      ? agent.systemPrompt.slice(0, MAX_SYSTEM_CHARS) + "\n[...catalog truncated for length]"
-      : agent.systemPrompt;
+    // GPT-4o-mini supports 128K context — no need to truncate the catalog.
+    // Truncation was causing products to lose their checkout URLs mid-catalog.
+    let systemPrompt = agent.systemPrompt;
 
     if (liveContent) {
       systemPrompt +=
@@ -513,17 +408,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         `\n\n---\nYOUR RECENT REPLIES (do NOT repeat or paraphrase any of these):\n${recentBotReplies}\n---`;
     }
 
-    // ── Proactive checkout URL injection ──────────────────────────────────────
-    // If the customer is asking for a link, find the correct URL from the catalog
-    // and tell the AI EXACTLY what URL to use — no guessing, no construction.
-    const lastUserMsg = history.filter((m) => m.role === "user").slice(-1)[0]?.content as string ?? "";
+    // ── Checkout URL injection ─────────────────────────────────────────────────
+    // When customer asks for a link, find the exact URL from the catalog and tell
+    // the AI precisely what to send — no guessing, no URL construction.
+    const lastUserMsg = (history.filter((m) => m.role === "user").slice(-1)[0]?.content ?? "") as string;
+    const lastBotMsg = (history.filter((m) => m.role === "assistant").slice(-1)[0]?.content ?? "") as string;
     const wantsLink = /\b(link|url|buy|purchase|order|checkout|get it|send|give|yes|ok|okay|sure|please|now)\b/i.test(lastUserMsg);
     if (wantsLink) {
       const catalogEntries = parseCatalogLinks(agent.systemPrompt);
-      const recentText = history.slice(-8).map((m) => m.content as string).join(" ");
-      const correctUrl = findBestCheckoutUrl(recentText, catalogEntries);
+      // Use last bot message + last user message — bot message has the product name
+      const context = `${lastBotMsg} ${lastUserMsg}`;
+      const correctUrl = findBestCheckoutUrl(context, catalogEntries);
       if (correctUrl) {
-        systemPrompt += `\n\n---\nCHECKOUT URL INSTRUCTION: The customer wants to purchase now. Send them this exact URL — copy it character for character, do not change anything: ${correctUrl}\nYour response must include: "Here you go: ${correctUrl}"\n---`;
+        systemPrompt += `\n\n---\nCHECKOUT URL INSTRUCTION: The customer wants to purchase. Include this exact URL in your response, character for character: ${correctUrl}\nFormat: "Here you go: ${correctUrl}"\n---`;
       }
     }
 
@@ -554,28 +451,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             temperature: 0.85,
           });
 
-          const rawResponse = response.choices[0]?.message?.content ?? "";
-
-          // Step 1: Strip any AI-constructed store URLs that aren't valid /cart/{id}:{qty} format
-          const cartEnforced = enforceCartUrls(rawResponse, baseUrl);
-
-          // Step 2: Validate remaining store URLs — strip any that return 404
-          let fullResponse = await sanitizeLinks(cartEnforced, baseUrl);
-
-          // Step 3: If the AI intended to send a checkout link but produced a bad URL,
-          // recover by doing a direct catalog scan using recent conversation context.
-          const linkStripped = /Let me get that link — just a moment/i.test(fullResponse) ||
-            /Here you go:\s*$/i.test(fullResponse);
-          if (linkStripped && agent.systemPrompt) {
-            const catalogEntries = parseCatalogLinks(agent.systemPrompt);
-            const recentText = history.slice(-6).map((m) => m.content as string).join(" ");
-            const correctUrl = findBestCheckoutUrl(recentText, catalogEntries);
-            if (correctUrl) {
-              fullResponse = fullResponse
-                .replace(/Let me get that link — just a moment\.?/i, `Here you go: ${correctUrl}`)
-                .replace(/Here you go:\s*$/i, `Here you go: ${correctUrl}`);
-            }
-          }
+          const fullResponse = response.choices[0]?.message?.content ?? "";
 
           // Stream character-by-character for natural human typing feel
           for (const char of fullResponse) {
