@@ -206,6 +206,175 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
   );
 }
 
+// ─── COUPON MANAGER ───────────────────────────────────────────────────────────
+
+interface Coupon {
+  id: string;
+  code: string;
+  discountType: string;
+  discountValue: string;
+  active: boolean;
+  createdAt: string;
+}
+
+function CouponManager({ agentId, currency }: { agentId: string; currency: string }) {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [code, setCode] = useState("");
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [discountValue, setDiscountValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState("");
+
+  const sym = currency || "$";
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(""), 2500); }
+
+  function generateCode() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const code = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    setCode(code);
+  }
+
+  useEffect(() => {
+    fetch(`/api/agents/${agentId}/coupons`)
+      .then((r) => r.json())
+      .then((d) => { setCoupons(d.coupons ?? []); setLoading(false); });
+  }, [agentId]);
+
+  async function handleCreate() {
+    if (!code.trim() || !discountValue.trim()) return;
+    setSaving(true);
+    const res = await fetch(`/api/agents/${agentId}/coupons`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, discountType, discountValue }),
+    });
+    const d = await res.json();
+    setSaving(false);
+    if (res.ok) {
+      setCoupons(d.coupons);
+      setCode(""); setDiscountValue("");
+      showToast("Coupon created & activated!");
+    } else { showToast(d.error ?? "Failed to create coupon"); }
+  }
+
+  async function handleAction(couponId: string, action: "activate" | "deactivate" | "delete") {
+    const res = await fetch(`/api/agents/${agentId}/coupons`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ couponId, action }),
+    });
+    const d = await res.json();
+    if (res.ok) {
+      setCoupons(d.coupons);
+      showToast(action === "delete" ? "Coupon deleted" : action === "activate" ? "Coupon activated" : "Coupon deactivated");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Create new coupon */}
+      <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
+        <h4 className="text-sm font-semibold text-gray-200">Create Coupon</h4>
+
+        {/* Code input + generator */}
+        <div className="flex gap-2">
+          <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="e.g. SAVE20"
+            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          <button type="button" onClick={generateCode}
+            className="bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-2 rounded-lg transition whitespace-nowrap">
+            Generate
+          </button>
+        </div>
+
+        {/* Discount type toggle + value */}
+        <div className="flex gap-2">
+          <div className="flex rounded-lg border border-gray-700 overflow-hidden">
+            <button type="button" onClick={() => setDiscountType("percentage")}
+              className={`px-3 py-2 text-sm font-medium transition ${discountType === "percentage" ? "bg-indigo-600 text-white" : "bg-gray-900 text-gray-400 hover:text-white"}`}>
+              %
+            </button>
+            <button type="button" onClick={() => setDiscountType("fixed")}
+              className={`px-3 py-2 text-sm font-medium transition ${discountType === "fixed" ? "bg-indigo-600 text-white" : "bg-gray-900 text-gray-400 hover:text-white"}`}>
+              {sym} Fixed
+            </button>
+          </div>
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+              {discountType === "fixed" ? sym : ""}
+            </span>
+            <input type="number" min={0} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)}
+              placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
+              className={`w-full bg-gray-900 border border-gray-700 rounded-lg py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 ${discountType === "fixed" ? "pl-7 pr-3" : "px-3"}`} />
+            {discountType === "percentage" && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+            )}
+          </div>
+          <button type="button" onClick={handleCreate} disabled={saving || !code.trim() || !discountValue.trim()}
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg transition">
+            {saving ? "Saving..." : "Add"}
+          </button>
+        </div>
+      </div>
+
+      {/* Saved coupons list */}
+      {!loading && coupons.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Saved Coupons</p>
+          {coupons.map((c) => (
+            <div key={c.id}
+              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition ${
+                c.active ? "bg-indigo-600/10 border-indigo-600/30" : "bg-gray-900 border-gray-800"
+              }`}>
+              <div className="flex items-center gap-3">
+                <span className={`font-mono text-sm font-bold tracking-widest ${c.active ? "text-indigo-300" : "text-gray-500"}`}>
+                  {c.code}
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${c.active ? "bg-indigo-600/20 text-indigo-400" : "bg-gray-800 text-gray-500"}`}>
+                  {c.discountType === "fixed" ? `${sym}${c.discountValue} off` : `${c.discountValue}% off`}
+                </span>
+                {c.active && <span className="text-xs text-green-400 font-medium">Active</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                {c.active ? (
+                  <button type="button" onClick={() => handleAction(c.id, "deactivate")}
+                    className="text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-2.5 py-1 rounded-lg transition">
+                    Deactivate
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => handleAction(c.id, "activate")}
+                    className="text-xs text-indigo-400 hover:text-white bg-indigo-600/10 hover:bg-indigo-600/30 px-2.5 py-1 rounded-lg transition">
+                    Activate
+                  </button>
+                )}
+                <button type="button" onClick={() => handleAction(c.id, "delete")}
+                  className="text-xs text-red-400 hover:text-white bg-red-900/10 hover:bg-red-900/30 px-2.5 py-1 rounded-lg transition">
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && coupons.length === 0 && (
+        <p className="text-xs text-gray-600 text-center py-4">No coupons yet. Create one above.</p>
+      )}
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-xl border border-gray-700 z-50">
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ─── CUSTOMISATION PANEL ──────────────────────────────────────────────────────
 
 function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChange: (c: AgentConfig) => void }) {
@@ -412,8 +581,6 @@ export default function EditAgentPage() {
   // Basic settings
   const [botName, setBotName] = useState("");
   const [openingMessage, setOpeningMessage] = useState("");
-  const [couponCode, setCouponCode] = useState("");
-  const [couponDiscount, setCouponDiscount] = useState("");
   const [tone, setTone] = useState("casual");
 
   // Per-agent config
@@ -434,8 +601,6 @@ export default function EditAgentPage() {
         setAgent(a);
         setBotName(a.botName);
         setOpeningMessage(a.openingMessage);
-        setCouponCode(a.couponCode ?? "");
-        setCouponDiscount(a.couponDiscount ?? "");
         setTone(a.tone ?? "casual");
         setConfig(a.config ? JSON.parse(a.config) : {});
         setRefreshInterval(a.refreshInterval ?? 0);
@@ -451,7 +616,7 @@ export default function EditAgentPage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        botName, openingMessage, couponCode, couponDiscount, tone,
+        botName, openingMessage, tone,
         config,
         refreshInterval,
         refreshUnit,
@@ -544,17 +709,9 @@ export default function EditAgentPage() {
                       <p className="text-xs text-gray-500 mt-1">Variables: {"{bot_name}"}, {"{store_name}"}, {"{customer_name}"}, {"{product_name}"}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Coupon Code</label>
-                        <input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="SAVE10"
-                          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Discount</label>
-                        <input value={couponDiscount} onChange={(e) => setCouponDiscount(e.target.value)} placeholder="10%"
-                          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm" />
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Discount Coupons</label>
+                      <CouponManager agentId={id} currency={agent.currency} />
                     </div>
 
                     <div>
