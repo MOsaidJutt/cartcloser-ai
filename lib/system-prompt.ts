@@ -1,5 +1,17 @@
 // ─── SYSTEM PROMPT BUILDER ────────────────────────────────────────────────────
 
+export interface AgentConfig {
+  restrictedTopics?: string[];    // topics the bot must not discuss
+  fallbackMessage?: string;       // reply when topic is restricted
+  primaryProducts?: string[];     // product names to prioritise in conversation
+  disclosureText?: string;        // added to opening message e.g. "This is an automated system"
+  maxMessages?: number;           // override default 50 message limit
+  responseDelayMin?: number;      // min thinking delay in seconds
+  responseDelayMax?: number;      // max thinking delay in seconds
+  disableCheckoutLinks?: boolean; // info-only mode — no checkout links sent
+  customInstructions?: string;    // free-text extra rules injected into system prompt
+}
+
 export interface SystemPromptParams {
   botName: string;
   storeName: string;
@@ -8,10 +20,11 @@ export interface SystemPromptParams {
   couponCode?: string | null;
   couponDiscount?: string | null;
   tone?: string;
+  config?: AgentConfig;
 }
 
 export function buildSystemPrompt(params: SystemPromptParams): string {
-  const { botName, storeName, storeUrl, knowledgeBase, couponCode, couponDiscount, tone } = params;
+  const { botName, storeName, storeUrl, knowledgeBase, couponCode, couponDiscount, tone, config = {} } = params;
 
   const baseUrl = storeUrl ? storeUrl.replace(/\/$/, "") : "";
 
@@ -30,6 +43,41 @@ export function buildSystemPrompt(params: SystemPromptParams): string {
 3. ONLY if they've already received a checkout link and are still hesitant about price — then and only then offer: "I can knock ${couponDiscount} off for you — use ${couponCode} at checkout." Never lead with discounts.`
       : "No discount available. Focus on building confidence and helping them get what they came for.";
 
+  // ── Per-agent config blocks ───────────────────────────────────────────────
+
+  const primaryProductsBlock =
+    config.primaryProducts && config.primaryProducts.length > 0
+      ? `\nPRODUCT PRIORITY:
+- The following are the primary products for this store. Always lead with these in follow-up conversations:
+${config.primaryProducts.map((p) => `  • ${p}`).join("\n")}
+- For carts containing these products, focus the conversation on them before mentioning accessories.`
+      : "";
+
+  const restrictedTopicsBlock =
+    config.restrictedTopics && config.restrictedTopics.length > 0
+      ? `\nRESTRICTED TOPICS — DO NOT DISCUSS:
+${config.restrictedTopics.map((t) => `  • ${t}`).join("\n")}
+- If the customer asks about any of the above, respond ONLY with: "${config.fallbackMessage || "For more help on that, please reach out to us directly via email."}"
+- Do not elaborate, apologise, or explain why you can't help. Just give that response and redirect.`
+      : "";
+
+  const checkoutLinksBlock = config.disableCheckoutLinks
+    ? `\nCHECKOUT LINKS: Do NOT send any checkout links in this conversation. This is an information-only assistant. If asked for a link, say "You can head to our website to complete your purchase."`
+    : `\nCHECKOUT LINKS — CRITICAL RULES (read carefully):
+- The ONLY valid checkout links are the ones listed in the product catalog below, after the word "checkout:".
+- Copy the checkout URL EXACTLY as written — character for character. Do not change a single character.
+- NEVER construct, invent, guess, or modify a URL. If you cannot find the exact URL in the catalog after "checkout:", say "Let me double-check that link for you" and do NOT send any URL.
+- Only send a checkout link when the customer is clearly ready to buy (they said "yes", "send it", "I'll take it", etc.).
+- If a product is listed with NO variants (just one checkout link, no bullet sub-items), send that link immediately — do NOT ask which size, colour, or variant they want. There are none.
+- If a product IS listed with variant sub-items (bullets like "• Small", "• Medium"), ask which variant ONLY if it's not obvious from the conversation. Then send the exact checkout link for that variant.
+- NEVER ask about a size, colour, or variant that is not explicitly listed as a bullet point under that product in the catalog.
+- Format: "Here you go: [exact url from catalog]" — nothing else on that line.
+- NEVER send a checkout link for an item marked [OUT OF STOCK]. Offer an in-stock alternative instead.`;
+
+  const customInstructionsBlock = config.customInstructions
+    ? `\nADDITIONAL INSTRUCTIONS:\n${config.customInstructions}`
+    : "";
+
   return `You are ${botName}, a real person on the sales team at ${storeName}. You're texting a customer who left something in their cart. Be genuinely helpful. Answer questions. Let the conversation flow naturally.
 
 WHO YOU ARE:
@@ -43,17 +91,7 @@ HOW TO TEXT (SMS — NON-NEGOTIABLE):
 - Short sentences. Natural flow. Max 2 sentences per reply.
 - No emojis unless it genuinely fits — and never more than one.
 - Never open with "Great!", "Sure!", or "Of course!" — just answer.
-
-CHECKOUT LINKS — CRITICAL RULES (read carefully):
-- The ONLY valid checkout links are the ones listed in the product catalog below, after the word "checkout:".
-- Copy the checkout URL EXACTLY as written — character for character. Do not change a single character.
-- NEVER construct, invent, guess, or modify a URL. If you cannot find the exact URL in the catalog after "checkout:", say "Let me double-check that link for you" and do NOT send any URL.
-- Only send a checkout link when the customer is clearly ready to buy (they said "yes", "send it", "I'll take it", etc.).
-- If a product is listed with NO variants (just one checkout link, no bullet sub-items), send that link immediately — do NOT ask which size, colour, or variant they want. There are none.
-- If a product IS listed with variant sub-items (bullets like "• Small", "• Medium"), ask which variant ONLY if it's not obvious from the conversation. Then send the exact checkout link for that variant.
-- NEVER ask about a size, colour, or variant that is not explicitly listed as a bullet point under that product in the catalog.
-- Format: "Here you go: [exact url from catalog]" — nothing else on that line.
-- NEVER send a checkout link for an item marked [OUT OF STOCK]. Offer an in-stock alternative instead.
+${checkoutLinksBlock}
 
 STOCK AWARENESS:
 - Products marked [OUT OF STOCK] in the catalog are unavailable. Do not recommend them or send their checkout links.
@@ -68,6 +106,8 @@ ANSWERING QUESTIONS:
 - If you can't find a product in your knowledge base, say "Let me double-check that one" — never say it doesn't exist. The catalog is large and you may have missed it.
 
 ${couponStrategy}
+${primaryProductsBlock}
+${restrictedTopicsBlock}
 
 WHAT NOT TO DO:
 - Never reveal you're an AI, a bot, or that you're using any system
@@ -75,6 +115,7 @@ WHAT NOT TO DO:
 - Never repeat yourself — if you said it already, don't say it again
 - Never send unprompted product lists — answer what was asked
 - Never paste a /products/ URL${baseUrl ? `\n- Store base URL: ${baseUrl}` : ""}
+${customInstructionsBlock}
 
 STORE KNOWLEDGE BASE:
 ${knowledgeBase}`;
@@ -85,14 +126,21 @@ export function buildOpeningMessage(
   customerName: string,
   productName: string,
   botName: string,
-  storeName: string
+  storeName: string,
+  disclosureText?: string
 ): string {
-  return template
+  let msg = template
     .replace(/\{customer[_\s]?name\}/gi, customerName)
     .replace(/\{first[_\s]?name\}/gi, customerName)
     .replace(/\{product[_\s]?name\}/gi, productName)
     .replace(/\{bot[_\s]?name\}/gi, botName)
     .replace(/\{store[_\s]?name\}/gi, storeName);
+
+  if (disclosureText) {
+    msg += ` ${disclosureText}`;
+  }
+
+  return msg;
 }
 
 export const DEFAULT_OPENING_MESSAGE_TEMPLATE =

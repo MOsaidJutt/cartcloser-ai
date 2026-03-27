@@ -42,11 +42,19 @@ model Agent {
   demoViews       Int       @default(0)   // incremented every time someone opens the demo
   conversions     Int       @default(0)   // incremented every time a visitor clicks a checkout/product link
   status          String    @default("building")
-  // Phase 2 GHL fields (DB ready, not used in Phase 1)
-  ghlAgentId      String?
-  ghlWorkflowId   String?
-  ghlDeployed     Boolean   @default(false)
-  ghlDeployedAt   DateTime?
+  // Per-agent customisation config (JSON string)
+  config           String    @default("{}")
+  // Knowledge base auto-refresh schedule
+  refreshInterval  Int?
+  refreshUnit      String?   // "day" | "week" | "month"
+  nextRefreshAt    DateTime?
+  lastRefreshedAt  DateTime?
+  // Phase 2 GHL fields
+  ghlAgentId       String?
+  ghlWorkflowId    String?
+  ghlDeployed      Boolean   @default(false)
+  ghlDeployedAt    DateTime?
+  ghlWebhookSecret String?
   conversations   Conversation[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

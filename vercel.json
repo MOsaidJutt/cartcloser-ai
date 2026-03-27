@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/refresh?secret=CRON_SECRET_PLACEHOLDER",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
