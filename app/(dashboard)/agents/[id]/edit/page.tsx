@@ -96,11 +96,11 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
     const res = await fetch(`/api/agents/${agentId}/knowledge-base`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "fetch-url", url: checkUrl }),
+      body: JSON.stringify({ type: "fetch-page", url: checkUrl }),
     });
     const d = await res.json();
     setFetchingUrl(false);
-    if (res.ok && d.title) setUrlPreview({ title: d.title, content: d.content });
+    if (res.ok && d.title) setUrlPreview({ title: d.title, content: d.preview });
     else showKbToast(d.error ?? "Could not fetch URL");
   }
 
@@ -110,7 +110,7 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
     const res = await fetch(`/api/agents/${agentId}/knowledge-base`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "append-section", title: urlPreview.title, content: urlPreview.content }),
+      body: JSON.stringify({ type: "append-section", sectionHeading: urlPreview.title, content: urlPreview.content }),
     });
     const d = await res.json();
     setAppendingUrl(false);

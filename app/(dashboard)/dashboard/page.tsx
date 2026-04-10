@@ -20,6 +20,12 @@ interface Agent {
   _count: { conversations: number };
 }
 
+interface DeployResult {
+  webhookUrl: string;
+  webhookSecret: string;
+  agentId: string;
+}
+
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     ready: "bg-green-500/20 text-green-400 border-green-500/30",
@@ -52,6 +58,102 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   );
 }
 
+// ── Deploy modal ──────────────────────────────────────────────────────────────
+function DeployModal({
+  result,
+  onClose,
+}: {
+  result: DeployResult;
+  onClose: () => void;
+}) {
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
+
+  function copy(text: string, which: "url" | "secret") {
+    navigator.clipboard.writeText(text);
+    if (which === "url") { setCopiedUrl(true); setTimeout(() => setCopiedUrl(false), 2000); }
+    else { setCopiedSecret(true); setTimeout(() => setCopiedSecret(false), 2000); }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-lg w-full"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-green-400">
+            ✓
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold">Agent Deployed to GHL</h3>
+            <p className="text-gray-400 text-sm">Configure this webhook in your GHL workflow</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1.5">
+              Webhook URL
+            </label>
+            <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+              <code className="text-indigo-300 text-xs flex-1 break-all">{result.webhookUrl}</code>
+              <button
+                onClick={() => copy(result.webhookUrl, "url")}
+                className="text-xs text-gray-400 hover:text-white border border-gray-600 px-2.5 py-1.5 rounded-lg transition shrink-0"
+              >
+                {copiedUrl ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1.5">
+              Webhook Secret (HMAC)
+            </label>
+            <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+              <code className="text-yellow-300 text-xs flex-1 break-all font-mono">{result.webhookSecret}</code>
+              <button
+                onClick={() => copy(result.webhookSecret, "secret")}
+                className="text-xs text-gray-400 hover:text-white border border-gray-600 px-2.5 py-1.5 rounded-lg transition shrink-0"
+              >
+                {copiedSecret ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <p className="text-gray-500 text-xs mt-1.5">
+              Paste this secret into the GHL webhook settings so messages are verified securely.
+            </p>
+          </div>
+
+          <div className="bg-indigo-900/20 border border-indigo-500/20 rounded-xl px-4 py-3 text-sm text-indigo-300">
+            <strong>Next steps in GHL:</strong>
+            <ol className="mt-2 space-y-1 text-indigo-300/80 list-decimal list-inside text-xs">
+              <li>Go to Automations → Create Workflow → SMS Inbound trigger</li>
+              <li>Add a Webhook action, paste the URL above</li>
+              <li>Add the secret to the webhook header verification</li>
+              <li>Activate the workflow</li>
+            </ol>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full mt-5 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl transition-colors"
+        >
+          Close
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -59,6 +161,9 @@ export default function DashboardPage() {
   const [toast, setToast] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deployingId, setDeployingId] = useState<string | null>(null);
+  const [deployResult, setDeployResult] = useState<DeployResult | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
   const fetchAgents = useCallback(async () => {
     const res = await fetch("/api/agents");
@@ -83,6 +188,55 @@ export default function DashboardPage() {
     setDeleteTarget(null);
     setDeleting(false);
     setToast("Agent deleted");
+  }
+
+  async function handleDeploy(agentId: string) {
+    setDeployingId(agentId);
+    const res = await fetch(`/api/agents/${agentId}/deploy-ghl`, { method: "POST" });
+    const data = await res.json();
+    setDeployingId(null);
+
+    if (!res.ok) {
+      setToast(data.error ?? "Deploy failed");
+      return;
+    }
+
+    // Update agent in list
+    setAgents((prev) =>
+      prev.map((a) => (a.id === agentId ? { ...a, ghlDeployed: true } : a))
+    );
+    setDeployResult(data);
+  }
+
+  async function handleExportSnapshot(agentId: string, storeName: string) {
+    setExportingId(agentId);
+    const res = await fetch(`/api/agents/${agentId}/export-snapshot`, { method: "POST" });
+    setExportingId(null);
+    if (!res.ok) {
+      const d = await res.json();
+      setToast(d.error ?? "Export failed");
+      return;
+    }
+    // Trigger browser download
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sms2cart-snapshot-${storeName.toLowerCase().replace(/\s+/g, "-")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setToast("Snapshot downloaded!");
+  }
+
+  async function handleUndeploy(agentId: string) {
+    if (!confirm("Remove this agent from GHL? The webhook will stop working.")) return;
+    const res = await fetch(`/api/agents/${agentId}/undeploy-ghl`, { method: "DELETE" });
+    if (res.ok) {
+      setAgents((prev) =>
+        prev.map((a) => (a.id === agentId ? { ...a, ghlDeployed: false } : a))
+      );
+      setToast("Agent undeployed from GHL");
+    }
   }
 
   async function handleLogout() {
@@ -139,7 +293,6 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : agents.length === 0 ? (
-          /* Empty state */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -183,7 +336,15 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    <StatusBadge status={agent.status} />
+                    <div className="flex flex-col items-end gap-1.5">
+                      <StatusBadge status={agent.status} />
+                      {agent.ghlDeployed && (
+                        <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                          GHL Live
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Stats */}
@@ -232,29 +393,63 @@ export default function DashboardPage() {
                       >
                         Edit
                       </Link>
+                      <Link
+                        href={`/agents/${agent.id}/conversations`}
+                        className="flex-1 text-center bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm py-2 rounded-xl transition-colors"
+                      >
+                        Chats
+                      </Link>
                       <button
                         onClick={() => setDeleteTarget(agent.id)}
-                        className="flex-1 bg-gray-800 hover:bg-red-900/30 hover:text-red-400 text-gray-300 text-sm py-2 rounded-xl transition-colors"
+                        className="bg-gray-800 hover:bg-red-900/30 hover:text-red-400 text-gray-300 text-sm py-2 px-3 rounded-xl transition-colors"
                       >
-                        Delete
+                        Del
                       </button>
                     </div>
 
-                    {/* Phase 2 GHL button — greyed out */}
-                    <div className="relative group/ghl">
+                    {/* GHL Deploy / Undeploy */}
+                    {agent.status === "ready" ? (
+                      agent.ghlDeployed ? (
+                        <div className="space-y-1.5">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDeploy(agent.id)}
+                              className="flex-1 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium py-2 rounded-xl transition"
+                            >
+                              View Webhook
+                            </button>
+                            <button
+                              onClick={() => handleUndeploy(agent.id)}
+                              className="flex-1 bg-gray-800 hover:bg-red-900/20 hover:text-red-400 text-gray-400 text-xs font-medium py-2 rounded-xl transition"
+                            >
+                              Undeploy
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => handleExportSnapshot(agent.id, agent.storeName)}
+                            disabled={exportingId === agent.id}
+                            className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-xs font-medium py-2 rounded-xl transition disabled:opacity-50"
+                          >
+                            {exportingId === agent.id ? "Exporting..." : "Export GHL Snapshot ↓"}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleDeploy(agent.id)}
+                          disabled={deployingId === agent.id}
+                          className="w-full bg-emerald-600/15 hover:bg-emerald-600/30 border border-emerald-500/30 hover:border-emerald-500/60 text-emerald-400 text-sm font-medium py-2.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {deployingId === agent.id ? "Deploying..." : "Deploy to GHL"}
+                        </button>
+                      )
+                    ) : (
                       <button
                         disabled
-                        className="w-full bg-gray-800/50 text-gray-600 text-sm py-2 rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full bg-gray-800/50 text-gray-600 text-sm py-2 rounded-xl cursor-not-allowed"
                       >
-                        <span>🔒</span> Export to GHL
-                        <span className="text-xs bg-gray-700 text-gray-500 px-1.5 py-0.5 rounded">
-                          Phase 2
-                        </span>
+                        Deploy to GHL (agent must be ready)
                       </button>
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/ghl:block bg-gray-800 text-gray-300 text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-xl border border-gray-700">
-                        GoHighLevel integration coming in Phase 2
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -299,6 +494,16 @@ export default function DashboardPage() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Deploy result modal */}
+      <AnimatePresence>
+        {deployResult && (
+          <DeployModal
+            result={deployResult}
+            onClose={() => setDeployResult(null)}
+          />
         )}
       </AnimatePresence>
 

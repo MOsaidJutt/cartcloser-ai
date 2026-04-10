@@ -1,0 +1,162 @@
+import OpenAI from "openai";
+import type { ScrapedStore } from "./scraper";
+
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+
+export interface KnowledgeBaseResult {
+  knowledgeBase: string;
+  storeName: string;
+  storeLogo: string | null;
+  productCount: number;
+  saleCount: number;
+  featuredProduct: { title: string; price: string; url: string } | null;
+}
+
+// ─── AI ANALYSIS ──────────────────────────────────────────────────────────────
+
+/**
+ * Sends scraped store data to GPT-4o for analysis.
+ * Returns a structured, human-readable knowledge base string.
+ */
+async function analyzeWithAI(data: ScrapedStore, apiKey: string): Promise<string> {
+  const client = new OpenAI({ apiKey });
+
+  // Build a compact product summary (avoid token bloat)
+  const productSummary = data.products.slice(0, 100).map((p) => ({
+    title: p.title,
+    price: p.price,
+    compareAt: p.compareAtPrice,
+    onSale: p.onSale,
+    type: p.productType,
+    description: p.description.slice(0, 200),
+    url: p.productUrl,
+    variants: p.variants.slice(0, 5),
+  }));
+
+  const saleProducts = data.products.filter((p) => p.onSale).slice(0, 20);
+
+  const storeDataSummary = {
+    storeName: data.storeName,
+    storeUrl: data.storeUrl,
+    totalProducts: data.productCount,
+    productsOnSale: data.saleProductCount,
+    sampleProducts: productSummary,
+    saleProducts: saleProducts.map((p) => ({
+      title: p.title,
+      salePrice: p.price,
+      originalPrice: p.compareAtPrice,
+      url: p.productUrl,
+    })),
+    policies: data.policies,
+  };
+
+  const prompt = `Analyze this Shopify store data and create a comprehensive knowledge base for an AI sales assistant.
+
+Store Data:
+${JSON.stringify(storeDataSummary, null, 2)}
+
+Create a structured knowledge base with these exact sections:
+1. STORE OVERVIEW — Store name, what they sell, unique selling proposition
+2. PRODUCT CATALOG — Main product categories, notable products with prices and URLs
+3. SALE ITEMS — Products currently on sale with original and sale prices
+4. RETURN POLICY — Clear 2-3 sentence summary
+5. SHIPPING & DELIVERY — Clear 2-3 sentence summary including timeframes if available
+6. CUSTOMER SUPPORT — Contact info, support hours if available
+7. KEY SELLING POINTS — 3-5 reasons to buy from this store
+
+Format as plain text with section headers. Be specific — include actual product names, prices, and URLs. The AI will use this to answer customer questions via SMS.`;
+
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 2000,
+    temperature: 0.3,
+  });
+
+  return response.choices[0]?.message?.content ?? "";
+}
+
+// ─── QUICK BUILD (no AI) ──────────────────────────────────────────────────────
+
+/**
+ * Builds a structured knowledge base from scraped data WITHOUT calling OpenAI.
+ * Used for Quick Setup mode.
+ */
+function buildQuickKnowledgeBase(data: ScrapedStore): string {
+  const saleProducts = data.products.filter((p) => p.onSale);
+  const categories = [...new Set(data.products.map((p) => p.productType).filter(Boolean))];
+
+  const productList = data.products
+    .slice(0, 50)
+    .map((p) => {
+      const saleNote = p.onSale ? ` (ON SALE from $${p.compareAtPrice})` : "";
+      return `- ${p.title}: $${p.price}${saleNote} | ${p.productUrl}`;
+    })
+    .join("\n");
+
+  const saleList = saleProducts
+    .slice(0, 20)
+    .map((p) => `- ${p.title}: $${p.price} (was $${p.compareAtPrice}) | ${p.productUrl}`)
+    .join("\n");
+
+  return `STORE OVERVIEW
+Store: ${data.storeName}
+URL: ${data.storeUrl}
+${data.storeDescription ? `Description: ${data.storeDescription}` : ""}
+Total Products: ${data.productCount}
+
+PRODUCT CATEGORIES
+${categories.length > 0 ? categories.join(", ") : "Various products"}
+
+PRODUCT CATALOG (first 50)
+${productList}
+
+SALE ITEMS
+${saleList || "No current sale items detected"}
+
+RETURN POLICY
+${data.policies.refund || "Please contact the store for return policy information."}
+
+SHIPPING & DELIVERY
+${data.policies.shipping || "Please contact the store for shipping information."}
+
+TERMS OF SERVICE
+${data.policies.terms ? data.policies.terms.slice(0, 500) : "See website for full terms."}`;
+}
+
+// ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
+
+/**
+ * Builds a knowledge base from scraped Shopify store data.
+ * @param data - Scraped store data
+ * @param apiKey - OpenAI API key (if provided, uses AI analysis; otherwise quick build)
+ * @param useAI - Whether to use GPT-4o for analysis
+ */
+export async function buildKnowledgeBase(
+  data: ScrapedStore,
+  apiKey: string,
+  useAI: boolean = true
+): Promise<KnowledgeBaseResult> {
+  const knowledgeBase = useAI
+    ? await analyzeWithAI(data, apiKey)
+    : buildQuickKnowledgeBase(data);
+
+  // Pick a featured product (prefer on-sale, otherwise first)
+  const featured = data.products.find((p) => p.onSale) ?? data.products[0] ?? null;
+
+  // Try to get store logo from first product image domain or favicon
+  const storeLogo = data.products[0]?.imageUrl
+    ? null // We'll use store favicon in the UI
+    : null;
+
+  return {
+    knowledgeBase,
+    storeName: data.storeName,
+    storeLogo,
+    productCount: data.productCount,
+    saleCount: data.saleProductCount,
+    featuredProduct: featured
+      ? { title: featured.title, price: featured.price, url: featured.productUrl }
+      : null,
+  };
+}

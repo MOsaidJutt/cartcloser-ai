@@ -19,16 +19,23 @@ function computeNextRefresh(interval: number, unit: string): Date {
 }
 
 export async function GET(req: NextRequest) {
-  // Simple secret check to prevent unauthorised triggers
-  const secret = req.nextUrl.searchParams.get("secret");
-  if (secret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  // Auth: accept either Vercel's Authorization header OR ?secret= query param (for Hostinger curl)
+  // Vercel passes: Authorization: Bearer ${CRON_SECRET}
+  // Hostinger: curl -H "Authorization: Bearer $CRON_SECRET" .../api/cron/refresh
+  if (process.env.CRON_SECRET) {
+    const authHeader = req.headers.get("authorization") ?? "";
+    const querySecret = req.nextUrl.searchParams.get("secret") ?? "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const isAuthorized = bearerToken === process.env.CRON_SECRET || querySecret === process.env.CRON_SECRET;
+    if (!isAuthorized) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const now = new Date();
 
-  // Find all agents due for a refresh
-  const agents = await prisma.agent.findMany({
+  // Find all agents due for a refresh (use prisma as any for new schema fields)
+  const agents = await (prisma as any).agent.findMany({
     where: {
       nextRefreshAt: { lte: now },
       refreshInterval: { not: null },
@@ -42,31 +49,32 @@ export async function GET(req: NextRequest) {
     try {
       console.log(`[cron/refresh] Refreshing KB for agent ${agent.id} — ${agent.storeName}`);
 
+      // Get user's OpenAI key
+      const user = await prisma.user.findUnique({ where: { id: agent.userId } });
+      const apiKey = user?.openaiKey ?? process.env.OPENAI_API_KEY ?? "";
+
       const storeData = await scrapeShopifyStore(agent.storeUrl);
-      const kb = await buildKnowledgeBase(storeData);
+      const kb = await buildKnowledgeBase(storeData, apiKey, true);
 
       const systemPrompt = buildSystemPrompt({
-        botName:       agent.botName,
-        storeName:     agent.storeName,
-        storeUrl:      agent.storeUrl,
-        knowledgeBase: kb.fullText,
-        couponCode:    agent.couponCode,
+        botName:        agent.botName,
+        storeName:      agent.storeName,
+        storeUrl:       agent.storeUrl,
+        knowledgeBase:  kb.knowledgeBase,
+        couponCode:     agent.couponCode,
         couponDiscount: agent.couponDiscount,
-        tone:          agent.tone,
-        config:        JSON.parse((agent as any).config ?? "{}"),
+        tone:           agent.tone,
+        config:         JSON.parse(agent.config ?? "{}"),
       });
 
-      const interval  = (agent as any).refreshInterval as number;
-      const unit      = (agent as any).refreshUnit as string;
-
-      await prisma.agent.update({
+      await (prisma as any).agent.update({
         where: { id: agent.id },
         data: {
-          knowledgeBase:   kb.fullText,
+          knowledgeBase:   kb.knowledgeBase,
           systemPrompt,
           productCount:    storeData.productCount,
           lastRefreshedAt: now,
-          nextRefreshAt:   computeNextRefresh(interval, unit),
+          nextRefreshAt:   computeNextRefresh(agent.refreshInterval, agent.refreshUnit),
         },
       });
 

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getSessionUser, unauthorized } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// ─── GET — return GHL deployment status for an agent ─────────────────────────
+// ─── GET — list conversations for an agent ────────────────────────────────────
 
 export async function GET(
   req: NextRequest,
@@ -15,12 +15,17 @@ export async function GET(
   const agent = await prisma.agent.findFirst({ where: { id, userId: session.userId } });
   if (!agent) return Response.json({ error: "Agent not found" }, { status: 404 });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-
-  return Response.json({
-    deployed: (agent as any).ghlDeployed ?? false,
-    deployedAt: (agent as any).ghlDeployedAt ?? null,
-    webhookUrl: (agent as any).ghlDeployed ? `${appUrl}/api/webhook/ghl/${id}` : null,
-    webhookSecret: (agent as any).ghlWebhookSecret ?? null,
+  const conversations = await prisma.conversation.findMany({
+    where: { agentId: id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1, // last message for preview
+      },
+      _count: { select: { messages: true } },
+    },
   });
+
+  return Response.json({ conversations });
 }

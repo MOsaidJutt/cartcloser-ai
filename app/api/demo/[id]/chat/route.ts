@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { checkRestrictedTopic } from "@/lib/config-guard";
+import type { AgentConfig } from "@/lib/system-prompt";
 
 const MAX_MESSAGES_PER_CONVERSATION = 50;
 
@@ -380,6 +382,39 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const client = new OpenAI({ apiKey });
 
     const baseUrl = (agent.storeUrl ?? "").replace(/\/$/, "");
+
+    // ── Server-side restricted topic guard ────────────────────────────────────
+    // Fetch full agent row to get config (Prisma select above omits new fields)
+    const agentFull = await (prisma as any).agent.findUnique({ where: { id } });
+    const agentConfig: AgentConfig = (() => {
+      try { return JSON.parse(agentFull?.config ?? "{}"); } catch { return {}; }
+    })();
+
+    const blockedReply = checkRestrictedTopic(message.trim(), agentConfig);
+    if (blockedReply) {
+      // Save the user message + canned reply without calling OpenAI
+      await prisma.message.create({
+        data: { conversationId, role: "assistant", content: blockedReply },
+      });
+      const encoder2 = new TextEncoder();
+      const blocked = new ReadableStream({
+        async start(controller) {
+          const send = (data: object) => {
+            try { controller.enqueue(encoder2.encode(`data: ${JSON.stringify(data)}\n\n`)); } catch {}
+          };
+          await new Promise((r) => setTimeout(r, 1500)); // brief thinking pause
+          for (const char of blockedReply) {
+            send({ delta: char });
+            await new Promise((r) => setTimeout(r, 14 + Math.random() * 8));
+          }
+          send({ done: true });
+          controller.close();
+        },
+      });
+      return new Response(blocked, {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+      });
+    }
 
     // ── Proactive fetch: detect intent and get live page content NOW ──────────
     // Run alongside the thinking delay so it doesn't add extra latency.

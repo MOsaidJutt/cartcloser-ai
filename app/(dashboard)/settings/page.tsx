@@ -7,12 +7,31 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function SettingsPage() {
   const router = useRouter();
+
+  // ── OpenAI ────────────────────────────────────────────────────────────────
   const [openaiKey, setOpenaiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState("");
   const [hasKey, setHasKey] = useState(false);
 
+  // ── GHL ───────────────────────────────────────────────────────────────────
+  const [ghlToken, setGhlToken] = useState("");
+  const [ghlLocationId, setGhlLocationId] = useState("");
+  const [showGhlToken, setShowGhlToken] = useState(false);
+  const [ghlConnecting, setGhlConnecting] = useState(false);
+  const [ghlConnected, setGhlConnected] = useState(false);
+  const [ghlLocationName, setGhlLocationName] = useState("");
+  const [ghlSavedLocationId, setGhlSavedLocationId] = useState("");
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  const [toast, setToast] = useState("");
+
+  function showToast(msg: string, duration = 2500) {
+    setToast(msg);
+    setTimeout(() => setToast(""), duration);
+  }
+
+  // ── Load session ──────────────────────────────────────────────────────────
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
@@ -20,8 +39,21 @@ export default function SettingsPage() {
         if (!d.user) { router.push("/login"); return; }
         setHasKey(d.user.hasOpenaiKey);
       });
+
+    // Load GHL status
+    fetch("/api/settings/ghl")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.connected) {
+          setGhlConnected(true);
+          setGhlSavedLocationId(d.locationId ?? "");
+          setGhlLocationName(d.locationName ?? "Connected");
+        }
+      })
+      .catch(() => {});
   }, [router]);
 
+  // ── Save OpenAI Key ───────────────────────────────────────────────────────
   async function saveOpenaiKey(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -34,14 +66,69 @@ export default function SettingsPage() {
     if (res.ok) {
       setHasKey(true);
       setOpenaiKey("");
-      setToast("OpenAI key saved!");
-      setTimeout(() => setToast(""), 2500);
+      showToast("OpenAI key saved!");
     } else {
       const d = await res.json();
-      setToast(d.error ?? "Failed to save key");
-      setTimeout(() => setToast(""), 3000);
+      showToast(d.error ?? "Failed to save key", 3000);
     }
   }
+
+  // ── Connect GHL ───────────────────────────────────────────────────────────
+  async function connectGhl(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ghlToken.trim() || !ghlLocationId.trim()) {
+      showToast("Both fields are required", 3000);
+      return;
+    }
+    setGhlConnecting(true);
+    const res = await fetch("/api/settings/ghl", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ghlApiToken: ghlToken, ghlLocationId }),
+    });
+    setGhlConnecting(false);
+    if (res.ok) {
+      const d = await res.json();
+      setGhlConnected(true);
+      setGhlSavedLocationId(d.locationId ?? ghlLocationId);
+      setGhlLocationName(d.locationName ?? "Connected");
+      setGhlToken("");
+      setGhlLocationId("");
+      showToast("GHL account connected!");
+    } else {
+      const d = await res.json();
+      showToast(d.error ?? "Failed to connect GHL", 4000);
+    }
+  }
+
+  // ── Test GHL connection ───────────────────────────────────────────────────
+  async function testGhl() {
+    const res = await fetch("/api/settings/ghl");
+    const d = await res.json();
+    if (d.connected) {
+      showToast("GHL connection is active ✓");
+    } else {
+      showToast("GHL connection failed — please reconnect", 4000);
+    }
+  }
+
+  // ── Disconnect GHL ────────────────────────────────────────────────────────
+  async function disconnectGhl() {
+    if (!confirm("Disconnect your GHL account? This will not affect already-deployed agents.")) return;
+    const res = await fetch("/api/settings/ghl", { method: "DELETE" });
+    if (res.ok) {
+      setGhlConnected(false);
+      setGhlSavedLocationId("");
+      setGhlLocationName("");
+      showToast("GHL account disconnected");
+    }
+  }
+
+  // ── Webhook URL ───────────────────────────────────────────────────────────
+  const webhookBase =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/webhook/ghl`
+      : "/api/webhook/ghl";
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -55,7 +142,8 @@ export default function SettingsPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-8">
-        {/* OpenAI Key */}
+
+        {/* ── OpenAI Key ───────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -99,48 +187,125 @@ export default function SettingsPage() {
           </form>
         </motion.div>
 
-        {/* Phase 2 — GHL Settings (greyed out) */}
+        {/* ── GoHighLevel Integration ──────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gray-900/50 border border-gray-800/50 rounded-2xl p-6 relative overflow-hidden"
+          className="bg-gray-900 border border-gray-800 rounded-2xl p-6"
         >
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gray-950/60 backdrop-blur-[2px] rounded-2xl flex items-center justify-center z-10">
-            <div className="text-center">
-              <span className="text-3xl block mb-2">🔒</span>
-              <span className="bg-gray-800 text-gray-400 text-sm font-medium px-4 py-2 rounded-full border border-gray-700">
-                Coming in Phase 2
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-lg font-semibold">GoHighLevel Integration</h2>
+            {ghlConnected && (
+              <span className="flex items-center gap-1.5 text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20 px-3 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                Connected
               </span>
-            </div>
+            )}
           </div>
-
-          <h2 className="text-lg font-semibold mb-1 text-gray-500">GoHighLevel Integration</h2>
-          <p className="text-gray-600 text-sm mb-5">
-            Connect your GHL account to deploy live abandoned cart recovery bots.
+          <p className="text-gray-400 text-sm mb-5">
+            Connect your GHL account to deploy live abandoned cart recovery bots via SMS.
           </p>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1.5">GHL API Token</label>
-              <input
-                disabled
-                placeholder="eyJhbGci..."
-                className="w-full bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-3 text-gray-600 cursor-not-allowed"
-              />
+
+          {ghlConnected ? (
+            /* ── Connected state ─────────────────────────────────────────── */
+            <div className="space-y-4">
+              <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 space-y-1">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Connected Account</p>
+                <p className="text-white font-medium">{ghlLocationName}</p>
+                <p className="text-gray-400 text-sm font-mono">{ghlSavedLocationId}</p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">
+                  Inbound Webhook URL (per agent)
+                </p>
+                <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <code className="text-indigo-300 text-xs flex-1 break-all">
+                    {webhookBase}/{"{"}<span className="text-yellow-300">agentId</span>{"}"}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${webhookBase}/{agentId}`);
+                      showToast("Copied!");
+                    }}
+                    className="text-xs text-gray-400 hover:text-white border border-gray-600 px-3 py-1.5 rounded-lg transition"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-gray-500 text-xs mt-1.5">
+                  Replace <code className="text-yellow-300">{"{agentId}"}</code> with the agent ID shown on the Deploy page.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={testGhl}
+                  className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
+                >
+                  Test Connection
+                </button>
+                <button
+                  type="button"
+                  onClick={disconnectGhl}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 text-sm font-medium px-5 py-2.5 rounded-xl transition"
+                >
+                  Disconnect
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1.5">GHL Location ID</label>
-              <input
-                disabled
-                placeholder="location_..."
-                className="w-full bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-3 text-gray-600 cursor-not-allowed"
-              />
-            </div>
-            <button disabled className="opacity-30 bg-gray-700 text-gray-400 font-semibold px-6 py-2.5 rounded-xl cursor-not-allowed">
-              Connect GHL
-            </button>
-          </div>
+          ) : (
+            /* ── Connect form ─────────────────────────────────────────────── */
+            <form onSubmit={connectGhl} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-300 mb-1.5">GHL API Token</label>
+                <div className="relative">
+                  <input
+                    type={showGhlToken ? "text" : "password"}
+                    value={ghlToken}
+                    onChange={(e) => setGhlToken(e.target.value)}
+                    placeholder="eyJhbGci..."
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 pr-24 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowGhlToken(!showGhlToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-white px-2 py-1 rounded"
+                  >
+                    {showGhlToken ? "Hide" : "Show"}
+                  </button>
+                </div>
+                <p className="text-gray-500 text-xs mt-1.5">
+                  Found in GHL → Settings → Integrations → API Keys
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-300 mb-1.5">GHL Location ID</label>
+                <input
+                  type="text"
+                  value={ghlLocationId}
+                  onChange={(e) => setGhlLocationId(e.target.value)}
+                  placeholder="aBcDeFgHiJkL..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                />
+                <p className="text-gray-500 text-xs mt-1.5">
+                  Found in GHL → Settings → Business Profile → Location ID
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={ghlConnecting || !ghlToken.trim() || !ghlLocationId.trim()}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
+              >
+                {ghlConnecting ? "Connecting..." : "Connect GHL"}
+              </button>
+            </form>
+          )}
         </motion.div>
       </main>
 

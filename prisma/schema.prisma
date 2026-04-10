@@ -73,13 +73,14 @@ model Coupon {
 }
 
 model Conversation {
-  id          String    @id @default(cuid())
-  agentId     String
-  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  visitorName String
-  productName String?   // product shown in opening message
-  messages    Message[]
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(cuid())
+  agentId        String
+  agent          Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  visitorName    String
+  productName    String?   // product shown in opening message
+  ghlContactId   String?   // GHL contact ID for live SMS conversations
+  messages       Message[]
+  createdAt      DateTime  @default(now())
 }
 
 model Message {
