@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -164,6 +164,8 @@ export default function DashboardPage() {
   const [deployingId, setDeployingId] = useState<string | null>(null);
   const [deployResult, setDeployResult] = useState<DeployResult | null>(null);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const chatClicksRef = useRef<Record<string, number>>({});
+  const chatClickTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const fetchAgents = useCallback(async () => {
     const res = await fetch("/api/agents");
@@ -237,6 +239,20 @@ export default function DashboardPage() {
       );
       setToast("Agent undeployed from GHL");
     }
+  }
+
+  function handleChatBadgeClick(agentId: string) {
+    const count = (chatClicksRef.current[agentId] ?? 0) + 1;
+    chatClicksRef.current[agentId] = count;
+    if (chatClickTimersRef.current[agentId]) clearTimeout(chatClickTimersRef.current[agentId]);
+    if (count >= 3) {
+      chatClicksRef.current[agentId] = 0;
+      router.push(`/agents/${agentId}/conversations`);
+      return;
+    }
+    chatClickTimersRef.current[agentId] = setTimeout(() => {
+      chatClicksRef.current[agentId] = 0;
+    }, 2000);
   }
 
   async function handleLogout() {
@@ -358,12 +374,13 @@ export default function DashboardPage() {
                     >
                       👁 {agent.demoViews ?? 0} views
                     </span>
-                    <span
+                    <button
                       title="Total conversations started"
-                      className="text-xs bg-green-900/30 text-green-400 border border-green-800/30 px-2.5 py-1 rounded-full"
+                      onClick={() => handleChatBadgeClick(agent.id)}
+                      className="text-xs bg-green-900/30 text-green-400 border border-green-800/30 px-2.5 py-1 rounded-full cursor-default select-none"
                     >
                       💬 {agent._count?.conversations ?? 0} chats
-                    </span>
+                    </button>
                     <span
                       title="Checkout / product link clicks"
                       className="text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-800/30 px-2.5 py-1 rounded-full"
@@ -393,17 +410,11 @@ export default function DashboardPage() {
                       >
                         Edit
                       </Link>
-                      <Link
-                        href={`/agents/${agent.id}/conversations`}
-                        className="flex-1 text-center bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm py-2 rounded-xl transition-colors"
-                      >
-                        Chats
-                      </Link>
                       <button
                         onClick={() => setDeleteTarget(agent.id)}
-                        className="bg-gray-800 hover:bg-red-900/30 hover:text-red-400 text-gray-300 text-sm py-2 px-3 rounded-xl transition-colors"
+                        className="flex-1 bg-gray-800 hover:bg-red-900/30 hover:text-red-400 text-gray-300 text-sm py-2 px-3 rounded-xl transition-colors"
                       >
-                        Del
+                        Delete
                       </button>
                     </div>
 

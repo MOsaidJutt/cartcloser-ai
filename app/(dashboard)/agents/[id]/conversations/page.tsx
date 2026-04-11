@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,16 +32,120 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+// ── Password gate ─────────────────────────────────────────────────────────────
+function PasswordGate({ onUnlocked }: { onUnlocked: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const res = await fetch("/api/chats-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+    setLoading(false);
+
+    if (data.ok) {
+      sessionStorage.setItem("chats_unlocked", "1");
+      onUnlocked();
+    } else {
+      setError("Incorrect password");
+      setPassword("");
+      inputRef.current?.focus();
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative w-full max-w-sm"
+      >
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-700 flex items-center justify-center text-3xl mx-auto mb-4">
+            🔒
+          </div>
+          <h2 className="text-xl font-bold text-white">Restricted Access</h2>
+          <p className="text-gray-500 text-sm mt-1">Enter the password to view conversations</p>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              ref={inputRef}
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError(""); }}
+              placeholder="Password"
+              required
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            />
+
+            <AnimatePresence>
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="text-red-400 text-sm bg-red-400/10 rounded-lg px-4 py-2"
+                >
+                  {error}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <button
+              type="submit"
+              disabled={loading || !password}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              {loading ? "Checking..." : "Unlock"}
+            </button>
+          </form>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function ConversationsPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const agentId = params.id;
+
+  const [unlocked, setUnlocked] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [agentName, setAgentName] = useState("");
+
+  // Check sessionStorage on mount
+  useEffect(() => {
+    if (sessionStorage.getItem("chats_unlocked") === "1") {
+      setUnlocked(true);
+    }
+    setCheckingSession(false);
+  }, []);
 
   const fetchList = useCallback(async () => {
     const res = await fetch(`/api/agents/${agentId}/conversations`);
@@ -51,17 +155,16 @@ export default function ConversationsPage() {
     setLoadingList(false);
   }, [agentId, router]);
 
-  // Load agent name for the header
   useEffect(() => {
+    if (!unlocked) return;
     fetch(`/api/agents/${agentId}`)
       .then((r) => r.json())
       .then((d) => setAgentName(d.agent?.storeName ?? "Agent"))
       .catch(() => {});
     fetchList();
-  }, [agentId, fetchList]);
+  }, [agentId, fetchList, unlocked]);
 
   async function openThread(conv: Conversation) {
-    // If we already have the last 1 preview message, load the full thread
     setLoadingThread(true);
     setSelected(null);
     const res = await fetch(`/api/agents/${agentId}/conversations/${conv.id}`);
@@ -71,6 +174,14 @@ export default function ConversationsPage() {
   }
 
   const lastMessage = (conv: Conversation) => conv.messages?.[0];
+
+  // While checking sessionStorage, render nothing to avoid flash
+  if (checkingSession) return null;
+
+  // Show password gate if not unlocked
+  if (!unlocked) {
+    return <PasswordGate onUnlocked={() => setUnlocked(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
