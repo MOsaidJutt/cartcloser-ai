@@ -12,6 +12,11 @@ interface AgentConfig {
   disclosureText?: string;
   disableCheckoutLinks?: boolean;
   customInstructions?: string;
+  // SMS follow-up settings
+  firstSmsDelayMinutes?: number;
+  followUpIntervalMinutes?: number;
+  maxFollowUps?: number;
+  followUpPrompts?: string[];
 }
 
 interface Agent {
@@ -488,6 +493,113 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
           onChange={(e) => onChange({ ...config, customInstructions: e.target.value })}
           rows={4} placeholder="e.g. Always mention our 30-day free trial. Never discuss returns over $500."
           className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none" />
+      </div>
+
+      {/* ── SMS Follow-up Timing ─────────────────────────────────────────── */}
+      <div className="border-t border-gray-800 pt-6">
+        <label className="block text-sm font-semibold text-gray-200 mb-1">SMS Follow-up Timing</label>
+        <p className="text-xs text-gray-500 mb-4">
+          Set when the first SMS is sent after cart abandonment, how often to follow up, and when to stop.
+        </p>
+
+        <div className="space-y-4">
+          {/* First SMS delay */}
+          <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-4">
+            <label className="block text-xs font-medium text-gray-300 mb-2">First SMS — delay after abandonment</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number" min={1} max={1440}
+                value={config.firstSmsDelayMinutes ?? 30}
+                onChange={(e) => onChange({ ...config, firstSmsDelayMinutes: parseInt(e.target.value) || 30 })}
+                className="w-20 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-400">minutes</span>
+              {(() => {
+                const mins = config.firstSmsDelayMinutes ?? 30;
+                const h = Math.floor(mins / 60);
+                const m = mins % 60;
+                return <span className="text-xs text-gray-600">({h > 0 ? `${h}h ` : ""}{m > 0 ? `${m}m` : ""})</span>;
+              })()}
+            </div>
+          </div>
+
+          {/* Follow-up interval */}
+          <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-4">
+            <label className="block text-xs font-medium text-gray-300 mb-2">Follow-up interval (if no reply)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number" min={1} max={10080}
+                value={config.followUpIntervalMinutes ?? 60}
+                onChange={(e) => onChange({ ...config, followUpIntervalMinutes: parseInt(e.target.value) || 60 })}
+                className="w-20 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-400">minutes between follow-ups</span>
+            </div>
+          </div>
+
+          {/* Max follow-ups */}
+          <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-4">
+            <label className="block text-xs font-medium text-gray-300 mb-2">Maximum follow-ups before stopping</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n} type="button"
+                  onClick={() => onChange({ ...config, maxFollowUps: n })}
+                  className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors border ${
+                    (config.maxFollowUps ?? 3) === n
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "bg-gray-900 border-gray-600 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Bot will send at most {config.maxFollowUps ?? 3} follow-up{(config.maxFollowUps ?? 3) !== 1 ? "s" : ""} then stop.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Follow-up Message Prompts ────────────────────────────────────── */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-200 mb-1">Follow-up Message Prompts</label>
+        <p className="text-xs text-gray-500 mb-4">
+          Instructions the AI uses when writing each follow-up SMS. Edit these to match the brand voice.
+        </p>
+
+        <div className="space-y-3">
+          {Array.from({ length: config.maxFollowUps ?? 3 }, (_, i) => {
+            const defaults = [
+              "Check in warmly without pressure. One short sentence only. Do NOT mention products or discounts yet.",
+              "Different angle from the last message — mention a key benefit or gently address a common hesitation. One sentence, human and brief.",
+              "Warm sign-off. One sentence. Let them know you're here if they need anything. No pressure at all.",
+              "Final gentle check-in. Remind them what's available. Keep it very short and friendly.",
+              "Very last message. Friendly close — let them know the offer stands whenever they're ready.",
+            ];
+            const prompts = config.followUpPrompts ?? [];
+            return (
+              <div key={i}>
+                <label className="block text-xs text-gray-400 mb-1.5">
+                  Follow-up #{i + 1} — AI instruction
+                </label>
+                <textarea
+                  value={prompts[i] ?? defaults[i]}
+                  onChange={(e) => {
+                    const updated = [...(config.followUpPrompts ?? defaults.slice(0, config.maxFollowUps ?? 3))];
+                    // Ensure array is long enough
+                    while (updated.length <= i) updated.push(defaults[updated.length]);
+                    updated[i] = e.target.value;
+                    onChange({ ...config, followUpPrompts: updated });
+                  }}
+                  rows={2}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

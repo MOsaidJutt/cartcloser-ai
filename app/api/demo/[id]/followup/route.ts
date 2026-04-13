@@ -19,16 +19,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return Response.json({ error: "conversationId and followupNumber required" }, { status: 400 });
     }
 
-    const num = Math.max(1, Math.min(3, followupNumber as number));
-
     const agent = await prisma.agent.findUnique({
       where: { id },
-      select: { systemPrompt: true, status: true, userId: true },
+      select: { systemPrompt: true, status: true, userId: true, config: true },
     });
 
     if (!agent) return Response.json({ error: "Demo not found" }, { status: 404 });
     if (agent.status !== "ready") {
       return Response.json({ error: "Demo not ready" }, { status: 503 });
+    }
+
+    // Read per-agent follow-up config
+    const agentConfig = agent.config ? JSON.parse(agent.config) : {};
+    const maxFollowUps: number = agentConfig.maxFollowUps ?? 3;
+    const customPrompts: string[] = agentConfig.followUpPrompts ?? [];
+
+    const num = Math.max(1, Math.min(maxFollowUps, followupNumber as number));
+
+    // If the requested follow-up number exceeds the configured max, stop silently
+    if ((followupNumber as number) > maxFollowUps) {
+      const encoder = new TextEncoder();
+      const silent = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, stopped: true })}\n\n`));
+          controller.close();
+        },
+      });
+      return new Response(silent, {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+      });
     }
 
     const conversation = await prisma.conversation.findUnique({
@@ -79,11 +98,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .find((m: { role: string; content: string }) => m.role === "assistant")?.content ?? "";
 
     // Each follow-up takes a genuinely different approach
-    const approaches: Record<number, string> = {
+    // Use custom prompts from agent config if set, otherwise fall back to defaults
+    const defaultApproaches: Record<number, string> = {
       1: `The customer went quiet. Send a single short, natural follow-up SMS — one sentence only. Check in warmly without pressure. Do NOT mention products or discounts yet.`,
       2: `The customer still hasn't replied. Send one sentence — a different angle from your last message. You could mention an easy next step, a key benefit, or gently address a common hesitation. Keep it human and brief.`,
       3: `Last follow-up. One sentence, warm sign-off tone. Let them know you're here if they need anything. No pressure at all.`,
+      4: `Final gentle check-in. Remind them what's available. Keep it very short and friendly.`,
+      5: `Very last message. Friendly close — let them know the offer stands whenever they're ready.`,
     };
+    const approaches: Record<number, string> = { ...defaultApproaches };
+    // Override with custom prompts where provided
+    customPrompts.forEach((prompt, i) => {
+      if (prompt?.trim()) approaches[i + 1] = prompt.trim();
+    });
 
     const avoidRepeat = lastBotMsg
       ? `\n\nIMPORTANT: Your last message was: "${lastBotMsg.slice(0, 180)}"\nDo NOT repeat or paraphrase any part of that. Say something genuinely different.`
