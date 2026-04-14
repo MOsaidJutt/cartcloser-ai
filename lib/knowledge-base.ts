@@ -156,25 +156,31 @@ async function runQualitativeAI(
   crawledPages: CrawledPage[],
   onProgress?: ProgressCallback
 ): Promise<string> {
-  // Sort by priority — pages/policies/FAQs first
+  // Sort by priority — pages/policies/FAQs first (most valuable content up front)
   const priorityOrder = ["page", "policy", "faq", "home", "blog", "collection", "other"];
   const sorted = [...crawledPages].sort(
     (a, b) => priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type)
   );
 
-  // Process all pages in chunks of 15 to stay under token limits
-  const chunks = chunkPages(sorted, 15);
-  console.log(`[knowledge-base] Processing ${crawledPages.length} pages in ${chunks.length} chunk(s)`);
+  // Cap AI analysis at the top 120 most important pages — diminishing returns beyond that.
+  // Remaining pages are still included programmatically (product catalog, policies).
+  const MAX_AI_PAGES = 120;
+  const pagesForAI = sorted.slice(0, MAX_AI_PAGES);
+
+  // Process in chunks of 15 to stay under token limits
+  const chunks = chunkPages(pagesForAI, 15);
+  console.log(`[knowledge-base] Processing ${pagesForAI.length} pages (of ${crawledPages.length} total) in ${chunks.length} chunk(s)`);
 
   // Emit starting event so UI knows how many chunks there are
   onProgress?.({
     step: "ai",
-    label: `Analyzing ${crawledPages.length} pages in ${chunks.length} batches...`,
+    label: `Analyzing top ${pagesForAI.length} pages in ${chunks.length} batches...`,
     count: 0,
     total: chunks.length,
   });
 
   const chunkResults: string[] = [];
+  const PER_CHUNK_TIMEOUT_MS = 60_000; // 60 seconds per API call max
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
@@ -198,15 +204,24 @@ async function runQualitativeAI(
 ADDITIONAL PAGES:
 ${crawledContext}`;
 
-    const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: chunkPrompt }],
-      max_tokens: i === 0 ? 3500 : 1500,
-      temperature: 0.2,
-    });
+    try {
+      const res = await client.chat.completions.create(
+        {
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: chunkPrompt }],
+          max_tokens: i === 0 ? 3500 : 1500,
+          temperature: 0.2,
+        },
+        { signal: AbortSignal.timeout(PER_CHUNK_TIMEOUT_MS) }
+      );
 
-    const content = res.choices[0]?.message?.content ?? "";
-    if (content.trim()) chunkResults.push(content);
+      const content = res.choices[0]?.message?.content ?? "";
+      if (content.trim()) chunkResults.push(content);
+    } catch (err: any) {
+      // Timeout or API error on a non-critical chunk — skip it and continue
+      if (i === 0) throw err; // First chunk is essential — propagate error
+      console.warn(`[knowledge-base] Chunk ${i + 1} skipped (${err.message ?? "timeout"})`);
+    }
   }
 
   // Merge: first chunk is the primary structured output, append supplements
