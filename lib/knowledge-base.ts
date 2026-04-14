@@ -162,19 +162,14 @@ async function runQualitativeAI(
     (a, b) => priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type)
   );
 
-  // Cap AI analysis at the top 120 most important pages — diminishing returns beyond that.
-  // Remaining pages are still included programmatically (product catalog, policies).
-  const MAX_AI_PAGES = 120;
-  const pagesForAI = sorted.slice(0, MAX_AI_PAGES);
-
-  // Process in chunks of 15 to stay under token limits
-  const chunks = chunkPages(pagesForAI, 15);
-  console.log(`[knowledge-base] Processing ${pagesForAI.length} pages (of ${crawledPages.length} total) in ${chunks.length} chunk(s)`);
+  // Process all crawled pages in chunks of 15 to stay under token limits
+  const chunks = chunkPages(sorted, 15);
+  console.log(`[knowledge-base] Processing ${crawledPages.length} pages in ${chunks.length} chunk(s)`);
 
   // Emit starting event so UI knows how many chunks there are
   onProgress?.({
     step: "ai",
-    label: `Analyzing top ${pagesForAI.length} pages in ${chunks.length} batches...`,
+    label: `Analyzing ${crawledPages.length} pages in ${chunks.length} batches...`,
     count: 0,
     total: chunks.length,
   });
