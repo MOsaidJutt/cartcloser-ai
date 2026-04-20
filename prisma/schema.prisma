@@ -19,6 +19,13 @@ model User {
   // Phase 2 GHL fields
   ghlApiToken   String?
   ghlLocationId String?
+  // Stripe billing
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  planStatus           String    @default("free") // "free" | "trialing" | "active" | "past_due" | "canceled"
+  planName             String    @default("free") // "free" | "starter" | "pro" | "agency"
+  currentPeriodEnd     DateTime?
   agents        Agent[]
   createdAt     DateTime @default(now())
 }
@@ -55,6 +62,9 @@ model Agent {
   ghlDeployed      Boolean   @default(false)
   ghlDeployedAt    DateTime?
   ghlWebhookSecret String?
+  // Shopify order tracking
+  shopifyWebhookSecret String?
+  totalRevenue         Float     @default(0)
   conversations   Conversation[]
   coupons         Coupon[]
   createdAt       DateTime  @default(now())
@@ -79,6 +89,10 @@ model Conversation {
   visitorName    String
   productName    String?   // product shown in opening message
   ghlContactId   String?   // GHL contact ID for live SMS conversations
+  // Shopify order conversion tracking
+  shopifyOrderId    String?
+  shopifyOrderTotal String?   // e.g. "129.99"
+  convertedAt       DateTime?
   messages       Message[]
   createdAt      DateTime  @default(now())
 }

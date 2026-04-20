@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       productCount: true,
       demoViews: true,
       conversions: true,
+      totalRevenue: true,
       status: true,
       ghlDeployed: true,
       createdAt: true,

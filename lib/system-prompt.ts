@@ -10,6 +10,7 @@ export interface AgentConfig {
   responseDelayMax?: number;      // max thinking delay in seconds
   disableCheckoutLinks?: boolean; // info-only mode — no checkout links sent
   customInstructions?: string;    // free-text extra rules injected into system prompt
+  ghlPaymentLink?: string;        // GHL invoice/payment link to send when customer is ready to pay
 }
 
 export interface SystemPromptParams {
@@ -74,6 +75,13 @@ ${config.restrictedTopics.map((t) => `  • ${t}`).join("\n")}
 - Format: "Here you go: [exact url from catalog]" — nothing else on that line.
 - NEVER send a checkout link for an item marked [OUT OF STOCK]. Offer an in-stock alternative instead.`;
 
+  const ghlPaymentLinkBlock = config.ghlPaymentLink
+    ? `\nGHL PAYMENT LINK:
+- If the customer is ready to pay and asks for a payment link or invoice, send them this URL: ${config.ghlPaymentLink}
+- Format: "Here's your payment link: ${config.ghlPaymentLink}"
+- Only send this when they explicitly ask for an invoice or payment link — not with every checkout link.`
+    : "";
+
   const customInstructionsBlock = config.customInstructions
     ? `\nADDITIONAL INSTRUCTIONS:\n${config.customInstructions}`
     : "";
@@ -108,6 +116,7 @@ ANSWERING QUESTIONS:
 ${couponStrategy}
 ${primaryProductsBlock}
 ${restrictedTopicsBlock}
+${ghlPaymentLinkBlock}
 
 WHAT NOT TO DO:
 - Never reveal you're an AI, a bot, or that you're using any system

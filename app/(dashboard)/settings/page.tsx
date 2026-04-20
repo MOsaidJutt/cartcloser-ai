@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { PLANS } from "@/lib/stripe";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // ── OpenAI ────────────────────────────────────────────────────────────────
   const [openaiKey, setOpenaiKey] = useState("");
@@ -22,6 +24,15 @@ export default function SettingsPage() {
   const [ghlConnected, setGhlConnected] = useState(false);
   const [ghlLocationName, setGhlLocationName] = useState("");
   const [ghlSavedLocationId, setGhlSavedLocationId] = useState("");
+
+  // ── Billing ───────────────────────────────────────────────────────────────
+  const [billing, setBilling] = useState<{
+    planName: string;
+    planStatus: string;
+    currentPeriodEnd: string | null;
+    hasStripeCustomer: boolean;
+  } | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   const [toast, setToast] = useState("");
@@ -51,7 +62,31 @@ export default function SettingsPage() {
         }
       })
       .catch(() => {});
-  }, [router]);
+
+    // Load billing status
+    fetch("/api/billing/status")
+      .then((r) => r.json())
+      .then((d) => setBilling(d))
+      .catch(() => {});
+
+    // Show success toast if coming back from Stripe checkout
+    if (searchParams.get("billing") === "success") {
+      showToast("Subscription activated! Welcome aboard.");
+    }
+  }, [router, searchParams]);
+
+  // ── Open Stripe portal ────────────────────────────────────────────────────
+  async function openBillingPortal() {
+    setBillingLoading(true);
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const d = await res.json();
+      if (d.url) window.location.href = d.url;
+      else showToast(d.error ?? "Could not open billing portal");
+    } finally {
+      setBillingLoading(false);
+    }
+  }
 
   // ── Save OpenAI Key ───────────────────────────────────────────────────────
   async function saveOpenaiKey(e: React.FormEvent) {
@@ -307,6 +342,85 @@ export default function SettingsPage() {
             </form>
           )}
         </motion.div>
+        {/* ── Billing ──────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-gray-900 border border-gray-800 rounded-2xl p-6"
+        >
+          <h2 className="text-lg font-semibold mb-1">Billing & Plan</h2>
+          <p className="text-gray-400 text-sm mb-5">
+            Manage your subscription, upgrade, or cancel anytime.
+          </p>
+
+          {billing ? (
+            <div className="space-y-4">
+              {/* Current plan badge */}
+              <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Plan</p>
+                  <p className="text-white font-semibold capitalize text-lg">{billing.planName}</p>
+                  {billing.planStatus === "active" && billing.currentPeriodEnd && (
+                    <p className="text-gray-400 text-xs mt-0.5">
+                      Renews {new Date(billing.currentPeriodEnd).toLocaleDateString()}
+                    </p>
+                  )}
+                  {billing.planStatus === "past_due" && (
+                    <p className="text-red-400 text-xs mt-0.5">Payment past due — please update your card</p>
+                  )}
+                  {billing.planStatus === "canceled" && (
+                    <p className="text-yellow-400 text-xs mt-0.5">Subscription canceled</p>
+                  )}
+                </div>
+                <span className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
+                  billing.planStatus === "active"
+                    ? "bg-green-500/10 text-green-400 border-green-500/20"
+                    : billing.planStatus === "past_due"
+                    ? "bg-red-500/10 text-red-400 border-red-500/20"
+                    : "bg-gray-700 text-gray-400 border-gray-600"
+                }`}>
+                  {billing.planStatus === "free" ? "Free" : billing.planStatus}
+                </span>
+              </div>
+
+              {/* Plan features */}
+              {billing.planName in PLANS && (
+                <div className="grid grid-cols-2 gap-2">
+                  {PLANS[billing.planName as keyof typeof PLANS].features.map((f) => (
+                    <div key={f} className="flex items-center gap-2 text-sm text-gray-400">
+                      <span className="text-green-400 text-xs">✓</span> {f}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <Link
+                  href="/pricing"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
+                >
+                  {billing.planName === "free" ? "Upgrade Plan" : "Change Plan"}
+                </Link>
+                {billing.hasStripeCustomer && (
+                  <button
+                    type="button"
+                    onClick={openBillingPortal}
+                    disabled={billingLoading}
+                    className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
+                  >
+                    {billingLoading ? "Opening..." : "Manage Billing"}
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="h-24 flex items-center justify-center text-gray-500 text-sm">
+              Loading billing info...
+            </div>
+          )}
+        </motion.div>
+
       </main>
 
       <AnimatePresence>

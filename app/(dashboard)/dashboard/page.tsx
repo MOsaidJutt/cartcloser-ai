@@ -14,6 +14,7 @@ interface Agent {
   productCount: number;
   demoViews: number;
   conversions: number;
+  totalRevenue: number;
   status: string;
   ghlDeployed: boolean;
   createdAt: string;
@@ -270,6 +271,12 @@ export default function DashboardPage() {
           </h1>
           <div className="flex items-center gap-3">
             <Link
+              href="/pricing"
+              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-gray-800"
+            >
+              Pricing
+            </Link>
+            <Link
               href="/settings"
               className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-gray-800"
             >
@@ -382,11 +389,19 @@ export default function DashboardPage() {
                       💬 {agent._count?.conversations ?? 0} chats
                     </button>
                     <span
-                      title="Checkout / product link clicks"
+                      title="Shopify orders completed via SMS"
                       className="text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-800/30 px-2.5 py-1 rounded-full"
                     >
-                      🛒 {agent.conversions ?? 0} conversions
+                      🛒 {agent.conversions ?? 0} sales
                     </span>
+                    {(agent.totalRevenue ?? 0) > 0 && (
+                      <span
+                        title="Revenue tracked from Shopify orders"
+                        className="text-xs bg-yellow-900/30 text-yellow-400 border border-yellow-800/30 px-2.5 py-1 rounded-full font-semibold"
+                      >
+                        💰 ${(agent.totalRevenue ?? 0).toFixed(2)}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-600 ml-auto">
                       {new Date(agent.createdAt).toLocaleDateString()}
                     </span>
