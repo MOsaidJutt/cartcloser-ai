@@ -46,13 +46,13 @@ function CheckItem({ item }: { item: ChecklistItem }) {
           </motion.div>
         )}
         {item.status === "running" && (
-          <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
         )}
         {item.status === "error" && (
           <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">✗</div>
         )}
         {item.status === "pending" && (
-          <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
+          <div className="w-5 h-5 rounded-full border-2 border-brand-border-lt" />
         )}
       </div>
 
@@ -62,7 +62,7 @@ function CheckItem({ item }: { item: ChecklistItem }) {
             item.status === "done"
               ? "text-white"
               : item.status === "running"
-              ? "text-indigo-300"
+              ? "text-brand-gold-lt"
               : item.status === "error"
               ? "text-red-400"
               : "text-gray-500"
@@ -136,11 +136,11 @@ function StepUrl({ onNext }: { onNext: (url: string, useAI: boolean) => void }) 
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="e.g. lynxgolf.co.uk or https://store.myshopify.com"
-            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition pr-10"
+            className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold transition pr-10"
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2">
             {validating && (
-              <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
             )}
             {!validating && urlStatus === "valid" && (
               <span className="text-green-400 text-lg">✓</span>
@@ -179,14 +179,14 @@ function StepUrl({ onNext }: { onNext: (url: string, useAI: boolean) => void }) 
         <button
           disabled={urlStatus !== "valid"}
           onClick={() => onNext(url.trim(), true)}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+          className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-40 disabled:cursor-not-allowed text-[#18110C] font-semibold py-3 rounded-xl transition-colors text-sm"
         >
-          🤖 AI Analysis <span className="text-indigo-300">(Recommended)</span>
+          🤖 AI Analysis <span className="text-brand-gold-lt">(Recommended)</span>
         </button>
         <button
           disabled={urlStatus !== "valid"}
           onClick={() => onNext(url.trim(), false)}
-          className="bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-200 font-semibold py-3 rounded-xl transition-colors text-sm"
+          className="bg-brand-input hover:bg-brand-border disabled:opacity-40 disabled:cursor-not-allowed text-gray-200 font-semibold py-3 rounded-xl transition-colors text-sm"
         >
           ⚡ Quick Setup
         </button>
@@ -230,9 +230,9 @@ function StepScanning({
           <span>Progress</span>
           <span>{pct}%</span>
         </div>
-        <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-brand-input rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-indigo-500 rounded-full"
+            className="h-full bg-brand-gold-lt rounded-full"
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           />
@@ -240,7 +240,7 @@ function StepScanning({
       </div>
 
       {/* Checklist */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl px-5 py-3 divide-y divide-gray-800/50 mb-6">
+      <div className="bg-brand-card border border-brand-border rounded-2xl px-5 py-3 divide-y divide-gray-800/50 mb-6">
         {checklist.map((item) => (
           <CheckItem key={item.id} item={item} />
         ))}
@@ -253,13 +253,13 @@ function StepScanning({
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 mb-3"
+            className="bg-brand-card/50 border border-brand-border rounded-xl px-4 py-3 mb-3"
           >
             <div className="flex justify-between text-xs text-gray-500 mb-1.5">
               <span className="font-mono truncate max-w-[200px]">{crawlProgress.path}</span>
               <span>{crawlProgress.count}/{crawlProgress.total} pages</span>
             </div>
-            <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-1 bg-brand-input rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-purple-500 rounded-full"
                 animate={{
@@ -281,15 +281,15 @@ function StepScanning({
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 mb-3"
+            className="bg-brand-card/50 border border-brand-border rounded-xl px-4 py-3 mb-3"
           >
             <div className="flex justify-between text-xs text-gray-500 mb-1.5">
               <span className="truncate max-w-[220px]">{aiProgress.label}</span>
-              <span className="text-indigo-400 font-mono">{aiProgress.count}/{aiProgress.total}</span>
+              <span className="text-brand-gold font-mono">{aiProgress.count}/{aiProgress.total}</span>
             </div>
-            <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-1 bg-brand-input rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-indigo-500 rounded-full"
+                className="h-full bg-brand-gold-lt rounded-full"
                 animate={{
                   width: aiProgress.total > 0
                     ? `${Math.round((aiProgress.count / aiProgress.total) * 100)}%`
@@ -364,7 +364,7 @@ function StepConfigure({
             <input
               value={botName}
               onChange={(e) => setBotName(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-gold transition"
             />
           </div>
 
@@ -376,7 +376,7 @@ function StepConfigure({
               value={openingMessage}
               onChange={(e) => setOpeningMessage(e.target.value)}
               rows={3}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none text-sm"
+              className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-gold transition resize-none text-sm"
             />
             <p className="text-xs text-gray-500 mt-1">
               Use: {"{bot_name}"}, {"{store_name}"}, {"{customer_name}"}, {"{product_name}"}
@@ -390,7 +390,7 @@ function StepConfigure({
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
                 placeholder="SAVE10"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm"
+                className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-gold transition text-sm"
               />
             </div>
             <div>
@@ -399,7 +399,7 @@ function StepConfigure({
                 value={couponDiscount}
                 onChange={(e) => setCouponDiscount(e.target.value)}
                 placeholder="10%"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm"
+                className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-gold transition text-sm"
               />
             </div>
           </div>
@@ -413,8 +413,8 @@ function StepConfigure({
                   onClick={() => setTone(t)}
                   className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors capitalize border ${
                     tone === t
-                      ? "bg-indigo-600 border-indigo-600 text-white"
-                      : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"
+                      ? "bg-brand-gold border-brand-gold text-[#18110C]"
+                      : "bg-brand-input border-brand-border-lt text-gray-400 hover:text-white"
                   }`}
                 >
                   {t}
@@ -428,9 +428,9 @@ function StepConfigure({
           <label className="block text-sm font-medium text-gray-300 mb-3">
             Opening Message Preview
           </label>
-          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-700">
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">
+          <div className="bg-brand-input rounded-2xl p-4 border border-brand-border-lt">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-brand-border-lt">
+              <div className="w-8 h-8 rounded-full bg-brand-gold flex items-center justify-center text-xs font-bold">
                 {agent.storeName.charAt(0)}
               </div>
               <div>
@@ -438,7 +438,7 @@ function StepConfigure({
                 <p className="text-xs text-green-400">Online</p>
               </div>
             </div>
-            <div className="bg-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-100 max-w-[90%]">
+            <div className="bg-brand-border rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-100 max-w-[90%]">
               {preview}
             </div>
             <p className="text-xs text-gray-600 mt-2 ml-1">
@@ -451,7 +451,7 @@ function StepConfigure({
       <button
         onClick={handleSave}
         disabled={saving}
-        className="mt-8 w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-colors text-lg"
+        className="mt-8 w-full bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 text-[#18110C] font-semibold py-3.5 rounded-xl transition-colors text-lg"
       >
         {saving ? "Creating Agent..." : "Create Agent →"}
       </button>
@@ -501,15 +501,15 @@ function StepSuccess({ agentId }: { agentId: string }) {
         Your demo is ready. Share the link below with your prospect.
       </p>
 
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl p-4 mb-4">
+      <div className="bg-brand-input border border-brand-border-lt rounded-2xl p-4 mb-4">
         <p className="text-xs text-gray-500 mb-2 text-left">Your demo link</p>
-        <p className="text-indigo-400 text-sm break-all text-left font-mono">{demoUrl}</p>
+        <p className="text-brand-gold text-sm break-all text-left font-mono">{demoUrl}</p>
       </div>
 
       <div className="space-y-3">
         <button
           onClick={copyLink}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-colors"
+          className="w-full bg-brand-gold hover:bg-brand-gold-lt text-[#18110C] font-bold font-semibold py-3 rounded-xl transition-colors"
         >
           {copied ? "✓ Copied!" : "📋 Copy Demo Link"}
         </button>
@@ -517,7 +517,7 @@ function StepSuccess({ agentId }: { agentId: string }) {
           href={demoUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full block bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold py-3 rounded-xl transition-colors"
+          className="w-full block bg-brand-input hover:bg-brand-border text-gray-200 font-semibold py-3 rounded-xl transition-colors"
         >
           🧪 Test Demo
         </a>
@@ -710,8 +710,8 @@ export default function NewAgentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
+    <div className="min-h-screen bg-brand-bg text-white">
+      <header className="border-b border-brand-border bg-brand-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center gap-4">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
             ← Dashboard
@@ -722,7 +722,7 @@ export default function NewAgentPage() {
               <div
                 key={s}
                 className={`w-2 h-2 rounded-full transition-colors ${
-                  s <= step ? "bg-indigo-500" : "bg-gray-700"
+                  s <= step ? "bg-brand-gold-lt" : "bg-brand-border"
                 }`}
               />
             ))}

@@ -65,9 +65,9 @@ function PasswordGate({ onUnlocked }: { onUnlocked: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center px-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-gold/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
       </div>
 
@@ -78,14 +78,14 @@ function PasswordGate({ onUnlocked }: { onUnlocked: () => void }) {
         className="relative w-full max-w-sm"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-700 flex items-center justify-center text-3xl mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-brand-card border border-brand-border-lt flex items-center justify-center text-3xl mx-auto mb-4">
             🔒
           </div>
           <h2 className="text-xl font-bold text-white">Restricted Access</h2>
           <p className="text-gray-500 text-sm mt-1">Enter the password to view conversations</p>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl">
+        <div className="bg-brand-card border border-brand-border rounded-2xl p-6 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
               ref={inputRef}
@@ -94,7 +94,7 @@ function PasswordGate({ onUnlocked }: { onUnlocked: () => void }) {
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
               placeholder="Password"
               required
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent transition"
             />
 
             <AnimatePresence>
@@ -113,7 +113,7 @@ function PasswordGate({ onUnlocked }: { onUnlocked: () => void }) {
             <button
               type="submit"
               disabled={loading || !password}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full bg-brand-gold hover:bg-brand-gold-lt disabled:bg-brand-border disabled:cursor-not-allowed text-[#18110C] font-semibold py-3 rounded-xl transition-colors"
             >
               {loading ? "Checking..." : "Unlock"}
             </button>
@@ -184,9 +184,9 @@ export default function ConversationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-brand-bg text-white flex flex-col">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-brand-border bg-brand-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-4">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
             ← Dashboard
@@ -215,7 +215,7 @@ export default function ConversationsPage() {
           {loadingList ? (
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-4 animate-pulse h-20" />
+                <div key={i} className="bg-brand-card border border-brand-border rounded-xl p-4 animate-pulse h-20" />
               ))}
             </div>
           ) : conversations.length === 0 ? (
@@ -236,10 +236,10 @@ export default function ConversationsPage() {
                     key={conv.id}
                     onClick={() => openThread(conv)}
                     whileTap={{ scale: 0.98 }}
-                    className={`w-full text-left bg-gray-900 border rounded-xl p-4 transition-all ${
+                    className={`w-full text-left bg-brand-card border rounded-xl p-4 transition-all ${
                       isActive
-                        ? "border-indigo-500/50 bg-indigo-600/5"
-                        : "border-gray-800 hover:border-gray-700"
+                        ? "border-brand-gold/50 bg-brand-gold/5"
+                        : "border-brand-border hover:border-brand-border-lt"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -251,7 +251,7 @@ export default function ConversationsPage() {
                       </span>
                     </div>
                     {conv.productName && (
-                      <p className="text-xs text-indigo-400 mb-1 truncate">
+                      <p className="text-xs text-brand-gold mb-1 truncate">
                         re: {conv.productName}
                       </p>
                     )}
@@ -279,7 +279,7 @@ export default function ConversationsPage() {
         </div>
 
         {/* ── Thread view ───────────────────────────────────────────────── */}
-        <div className="flex-1 bg-gray-900 border border-gray-800 rounded-2xl flex flex-col overflow-hidden">
+        <div className="flex-1 bg-brand-card border border-brand-border rounded-2xl flex flex-col overflow-hidden">
           {loadingThread ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-gray-500 text-sm animate-pulse">Loading...</div>
@@ -292,7 +292,7 @@ export default function ConversationsPage() {
           ) : (
             <>
               {/* Thread header */}
-              <div className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+              <div className="border-b border-brand-border px-6 py-4 flex items-center justify-between">
                 <div>
                   <p className="font-semibold">{selected.visitorName}</p>
                   <p className="text-xs text-gray-500">
@@ -320,14 +320,14 @@ export default function ConversationsPage() {
                       <div
                         className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                           msg.role === "user"
-                            ? "bg-indigo-600 text-white rounded-br-md"
-                            : "bg-gray-800 text-gray-200 rounded-bl-md"
+                            ? "bg-brand-gold text-[#18110C] font-bold rounded-br-md"
+                            : "bg-brand-input text-gray-200 rounded-bl-md"
                         }`}
                       >
                         <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                         <p
                           className={`text-xs mt-1 ${
-                            msg.role === "user" ? "text-indigo-300" : "text-gray-500"
+                            msg.role === "user" ? "text-brand-gold-lt" : "text-gray-500"
                           }`}
                         >
                           {new Date(msg.createdAt).toLocaleTimeString([], {

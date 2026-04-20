@@ -125,20 +125,20 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
     } else { showKbToast(d.error ?? "Failed to append"); }
   }
 
-  if (loading) return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" /></div>;
   if (!kb) return null;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-gray-400">{kb.sections.length} sections · {kb.characterCount.toLocaleString()} chars</div>
-        <button onClick={copyAll} className="text-xs text-indigo-400 hover:text-indigo-300 transition">
+        <button onClick={copyAll} className="text-xs text-brand-gold hover:text-brand-gold-lt transition">
           {copied ? "Copied!" : "Copy All"}
         </button>
       </div>
       <div className="space-y-2 mb-8">
         {kb.sections.map((s) => (
-          <div key={s.heading} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div key={s.heading} className="bg-brand-card border border-brand-border rounded-xl overflow-hidden">
             <button
               onClick={() => setExpanded(expanded === s.heading ? null : s.heading)}
               className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-200 hover:text-white transition"
@@ -149,15 +149,15 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
             <AnimatePresence>
               {expanded === s.heading && (
                 <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-                  className="overflow-hidden border-t border-gray-800">
+                  className="overflow-hidden border-t border-brand-border">
                   <div className="px-4 py-3">
                     {editingSection === s.heading ? (
                       <div>
                         <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)}
-                          rows={8} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 resize-y focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                          rows={8} className="w-full bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-gray-200 resize-y focus:outline-none focus:ring-1 focus:ring-brand-gold" />
                         <div className="flex gap-2 mt-2">
                           <button onClick={() => saveSection(s.heading)} disabled={savingSection}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+                            className="bg-brand-gold hover:bg-brand-gold-lt text-[#18110C] font-bold text-xs px-3 py-1.5 rounded-lg transition disabled:opacity-50">
                             {savingSection ? "Saving..." : "Save"}
                           </button>
                           <button onClick={() => setEditingSection(null)} className="text-gray-400 hover:text-white text-xs px-3 py-1.5 rounded-lg transition">Cancel</button>
@@ -167,7 +167,7 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
                       <div>
                         <p className="text-xs text-gray-400 whitespace-pre-wrap leading-relaxed">{s.content.slice(0, 600)}{s.content.length > 600 ? "…" : ""}</p>
                         <button onClick={() => { setEditingSection(s.heading); setEditContent(s.content); setExpanded(s.heading); }}
-                          className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 transition">Edit</button>
+                          className="mt-2 text-xs text-brand-gold hover:text-brand-gold-lt transition">Edit</button>
                       </div>
                     )}
                   </div>
@@ -178,18 +178,18 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
         ))}
       </div>
       {/* Add URL section */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div className="bg-brand-card border border-brand-border rounded-xl p-4">
         <h4 className="text-sm font-semibold text-gray-300 mb-3">Add Content from URL</h4>
         <div className="flex gap-2 mb-3">
           <input value={checkUrl} onChange={(e) => setCheckUrl(e.target.value)} placeholder="https://store.com/faq"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            className="flex-1 bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold" />
           <button onClick={fetchUrlPreview} disabled={fetchingUrl || !checkUrl.trim()}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg transition">
+            className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-40 text-[#18110C] text-sm px-4 py-2 rounded-lg transition">
             {fetchingUrl ? "Fetching..." : "Fetch"}
           </button>
         </div>
         {urlPreview && (
-          <div className="bg-gray-800 rounded-lg p-3 text-xs text-gray-300">
+          <div className="bg-brand-input rounded-lg p-3 text-xs text-gray-300">
             <p className="font-semibold text-white mb-1">{urlPreview.title}</p>
             <p className="text-gray-400 line-clamp-3">{urlPreview.content.slice(0, 300)}…</p>
             <button onClick={appendUrl} disabled={appendingUrl}
@@ -202,7 +202,7 @@ function KnowledgeBaseViewer({ agentId }: { agentId: string }) {
       <AnimatePresence>
         {kbToast && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-xl border border-gray-700 z-50">
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-input text-white text-sm px-5 py-3 rounded-full shadow-xl border border-brand-border-lt z-50">
             {kbToast}
           </motion.div>
         )}
@@ -280,29 +280,29 @@ function CouponManager({ agentId, currency }: { agentId: string; currency: strin
   return (
     <div className="space-y-4">
       {/* Create new coupon */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
+      <div className="bg-brand-input border border-brand-border-lt rounded-xl p-4 space-y-3">
         <h4 className="text-sm font-semibold text-gray-200">Create Coupon</h4>
 
         {/* Code input + generator */}
         <div className="flex gap-2">
           <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="e.g. SAVE20"
-            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            className="flex-1 bg-brand-card border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-brand-gold" />
           <button type="button" onClick={generateCode}
-            className="bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-2 rounded-lg transition whitespace-nowrap">
+            className="bg-brand-border hover:bg-brand-border-lt text-gray-200 text-xs px-3 py-2 rounded-lg transition whitespace-nowrap">
             Generate
           </button>
         </div>
 
         {/* Discount type toggle + value */}
         <div className="flex gap-2">
-          <div className="flex rounded-lg border border-gray-700 overflow-hidden">
+          <div className="flex rounded-lg border border-brand-border-lt overflow-hidden">
             <button type="button" onClick={() => setDiscountType("percentage")}
-              className={`px-3 py-2 text-sm font-medium transition ${discountType === "percentage" ? "bg-indigo-600 text-white" : "bg-gray-900 text-gray-400 hover:text-white"}`}>
+              className={`px-3 py-2 text-sm font-medium transition ${discountType === "percentage" ? "bg-brand-gold text-[#18110C] font-bold" : "bg-brand-card text-gray-400 hover:text-white"}`}>
               %
             </button>
             <button type="button" onClick={() => setDiscountType("fixed")}
-              className={`px-3 py-2 text-sm font-medium transition ${discountType === "fixed" ? "bg-indigo-600 text-white" : "bg-gray-900 text-gray-400 hover:text-white"}`}>
+              className={`px-3 py-2 text-sm font-medium transition ${discountType === "fixed" ? "bg-brand-gold text-[#18110C] font-bold" : "bg-brand-card text-gray-400 hover:text-white"}`}>
               {sym} Fixed
             </button>
           </div>
@@ -312,13 +312,13 @@ function CouponManager({ agentId, currency }: { agentId: string; currency: strin
             </span>
             <input type="number" min={0} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)}
               placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
-              className={`w-full bg-gray-900 border border-gray-700 rounded-lg py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 ${discountType === "fixed" ? "pl-7 pr-3" : "px-3"}`} />
+              className={`w-full bg-brand-card border border-brand-border-lt rounded-lg py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold ${discountType === "fixed" ? "pl-7 pr-3" : "px-3"}`} />
             {discountType === "percentage" && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
             )}
           </div>
           <button type="button" onClick={handleCreate} disabled={saving || !code.trim() || !discountValue.trim()}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg transition">
+            className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-40 text-[#18110C] text-sm px-4 py-2 rounded-lg transition">
             {saving ? "Saving..." : "Add"}
           </button>
         </div>
@@ -331,13 +331,13 @@ function CouponManager({ agentId, currency }: { agentId: string; currency: strin
           {coupons.map((c) => (
             <div key={c.id}
               className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition ${
-                c.active ? "bg-indigo-600/10 border-indigo-600/30" : "bg-gray-900 border-gray-800"
+                c.active ? "bg-brand-gold/10 border-brand-gold/30" : "bg-brand-card border-brand-border"
               }`}>
               <div className="flex items-center gap-3">
-                <span className={`font-mono text-sm font-bold tracking-widest ${c.active ? "text-indigo-300" : "text-gray-500"}`}>
+                <span className={`font-mono text-sm font-bold tracking-widest ${c.active ? "text-brand-gold-lt" : "text-gray-500"}`}>
                   {c.code}
                 </span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${c.active ? "bg-indigo-600/20 text-indigo-400" : "bg-gray-800 text-gray-500"}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${c.active ? "bg-brand-gold/20 text-brand-gold" : "bg-brand-input text-gray-500"}`}>
                   {c.discountType === "fixed" ? `${sym}${c.discountValue} off` : `${c.discountValue}% off`}
                 </span>
                 {c.active && <span className="text-xs text-green-400 font-medium">Active</span>}
@@ -345,12 +345,12 @@ function CouponManager({ agentId, currency }: { agentId: string; currency: strin
               <div className="flex items-center gap-2">
                 {c.active ? (
                   <button type="button" onClick={() => handleAction(c.id, "deactivate")}
-                    className="text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-2.5 py-1 rounded-lg transition">
+                    className="text-xs text-gray-400 hover:text-white bg-brand-input hover:bg-brand-border px-2.5 py-1 rounded-lg transition">
                     Deactivate
                   </button>
                 ) : (
                   <button type="button" onClick={() => handleAction(c.id, "activate")}
-                    className="text-xs text-indigo-400 hover:text-white bg-indigo-600/10 hover:bg-indigo-600/30 px-2.5 py-1 rounded-lg transition">
+                    className="text-xs text-brand-gold hover:text-white bg-brand-gold/10 hover:bg-brand-gold/30 px-2.5 py-1 rounded-lg transition">
                     Activate
                   </button>
                 )}
@@ -371,7 +371,7 @@ function CouponManager({ agentId, currency }: { agentId: string; currency: strin
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-xl border border-gray-700 z-50">
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-input text-white text-sm px-5 py-3 rounded-full shadow-xl border border-brand-border-lt z-50">
             {toast}
           </motion.div>
         )}
@@ -402,19 +402,19 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
               }
             }}
             placeholder="e.g. Ozlo Sleepbuds"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            className="flex-1 bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold" />
           <button type="button" onClick={() => {
             if (!newProduct.trim()) return;
             onChange({ ...config, primaryProducts: [...(config.primaryProducts ?? []), newProduct.trim()] });
             setNewProduct("");
-          }} className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-3 py-2 rounded-lg transition">Add</button>
+          }} className="bg-brand-gold hover:bg-brand-gold-lt text-[#18110C] font-bold text-sm px-3 py-2 rounded-lg transition">Add</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {(config.primaryProducts ?? []).map((p) => (
-            <span key={p} className="flex items-center gap-1.5 bg-indigo-600/20 border border-indigo-600/30 text-indigo-300 text-xs px-3 py-1 rounded-full">
+            <span key={p} className="flex items-center gap-1.5 bg-brand-gold/20 border border-brand-gold/30 text-brand-gold-lt text-xs px-3 py-1 rounded-full">
               {p}
               <button type="button" onClick={() => onChange({ ...config, primaryProducts: config.primaryProducts?.filter((x) => x !== p) })}
-                className="text-indigo-400 hover:text-white transition">×</button>
+                className="text-brand-gold hover:text-white transition">×</button>
             </span>
           ))}
         </div>
@@ -434,7 +434,7 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
               }
             }}
             placeholder="e.g. phone number, pricing, competitors"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            className="flex-1 bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold" />
           <button type="button" onClick={() => {
             if (!newTopic.trim()) return;
             onChange({ ...config, restrictedTopics: [...(config.restrictedTopics ?? []), newTopic.trim()] });
@@ -459,7 +459,7 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
         <input value={config.fallbackMessage ?? ""}
           onChange={(e) => onChange({ ...config, fallbackMessage: e.target.value })}
           placeholder="For more help, please reach out to us via email."
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          className="w-full bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold" />
       </div>
 
       {/* Disclosure text */}
@@ -469,18 +469,18 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
         <input value={config.disclosureText ?? ""}
           onChange={(e) => onChange({ ...config, disclosureText: e.target.value })}
           placeholder="Note: this is an automated assistant."
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          className="w-full bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold" />
       </div>
 
       {/* Disable checkout links */}
-      <div className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+      <div className="flex items-center justify-between bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3">
         <div>
           <p className="text-sm font-semibold text-gray-200">Information-only mode</p>
           <p className="text-xs text-gray-500 mt-0.5">Disable checkout links — bot answers questions only, no purchase links sent.</p>
         </div>
         <button type="button"
           onClick={() => onChange({ ...config, disableCheckoutLinks: !config.disableCheckoutLinks })}
-          className={`relative w-11 h-6 rounded-full transition-colors ${config.disableCheckoutLinks ? "bg-indigo-600" : "bg-gray-600"}`}>
+          className={`relative w-11 h-6 rounded-full transition-colors ${config.disableCheckoutLinks ? "bg-brand-gold" : "bg-gray-600"}`}>
           <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${config.disableCheckoutLinks ? "translate-x-5" : ""}`} />
         </button>
       </div>
@@ -492,11 +492,11 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
         <textarea value={config.customInstructions ?? ""}
           onChange={(e) => onChange({ ...config, customInstructions: e.target.value })}
           rows={4} placeholder="e.g. Always mention our 30-day free trial. Never discuss returns over $500."
-          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none" />
+          className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold resize-none" />
       </div>
 
       {/* ── SMS Follow-up Timing ─────────────────────────────────────────── */}
-      <div className="border-t border-gray-800 pt-6">
+      <div className="border-t border-brand-border pt-6">
         <label className="block text-sm font-semibold text-gray-200 mb-1">SMS Follow-up Timing</label>
         <p className="text-xs text-gray-500 mb-4">
           Set when the first SMS is sent after cart abandonment, how often to follow up, and when to stop.
@@ -504,14 +504,14 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
 
         <div className="space-y-4">
           {/* First SMS delay */}
-          <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-4">
+          <div className="bg-brand-input border border-brand-border-lt rounded-xl px-4 py-4">
             <label className="block text-xs font-medium text-gray-300 mb-2">First SMS — delay after abandonment</label>
             <div className="flex items-center gap-3">
               <input
                 type="number" min={1} max={1440}
                 value={config.firstSmsDelayMinutes ?? 30}
                 onChange={(e) => onChange({ ...config, firstSmsDelayMinutes: parseInt(e.target.value) || 30 })}
-                className="w-20 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-20 bg-brand-card border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <span className="text-sm text-gray-400">minutes</span>
               {(() => {
@@ -524,21 +524,21 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
           </div>
 
           {/* Follow-up interval */}
-          <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-4">
+          <div className="bg-brand-input border border-brand-border-lt rounded-xl px-4 py-4">
             <label className="block text-xs font-medium text-gray-300 mb-2">Follow-up interval (if no reply)</label>
             <div className="flex items-center gap-3">
               <input
                 type="number" min={1} max={10080}
                 value={config.followUpIntervalMinutes ?? 60}
                 onChange={(e) => onChange({ ...config, followUpIntervalMinutes: parseInt(e.target.value) || 60 })}
-                className="w-20 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-20 bg-brand-card border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold"
               />
               <span className="text-sm text-gray-400">minutes between follow-ups</span>
             </div>
           </div>
 
           {/* Max follow-ups */}
-          <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-4">
+          <div className="bg-brand-input border border-brand-border-lt rounded-xl px-4 py-4">
             <label className="block text-xs font-medium text-gray-300 mb-2">Maximum follow-ups before stopping</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -547,8 +547,8 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
                   onClick={() => onChange({ ...config, maxFollowUps: n })}
                   className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors border ${
                     (config.maxFollowUps ?? 3) === n
-                      ? "bg-indigo-600 border-indigo-600 text-white"
-                      : "bg-gray-900 border-gray-600 text-gray-400 hover:text-white"
+                      ? "bg-brand-gold border-brand-gold text-[#18110C]"
+                      : "bg-brand-card border-brand-border-lt text-gray-400 hover:text-white"
                   }`}
                 >
                   {n}
@@ -594,7 +594,7 @@ function CustomisationPanel({ config, onChange }: { config: AgentConfig; onChang
                     onChange({ ...config, followUpPrompts: updated });
                   }}
                   rows={2}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                  className="w-full bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold resize-none"
                 />
               </div>
             );
@@ -628,7 +628,7 @@ function RefreshScheduler({ refreshInterval, refreshUnit, nextRefreshAt, lastRef
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <div className="bg-brand-card border border-brand-border rounded-xl p-5">
       <h3 className="text-sm font-semibold text-gray-200 mb-1">Knowledge Base Auto-Refresh</h3>
       <p className="text-xs text-gray-500 mb-4">Bot will automatically re-scrape the store and rebuild its knowledge base on this schedule.</p>
 
@@ -638,12 +638,12 @@ function RefreshScheduler({ refreshInterval, refreshUnit, nextRefreshAt, lastRef
           <input type="number" min={0} max={99} value={interval || ""}
             onChange={(e) => { const v = parseInt(e.target.value) || 0; setInterval(v); onChange(v, unit); }}
             placeholder="e.g. 2"
-            className="w-24 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            className="w-24 bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold" />
         </div>
         <div>
           <label className="block text-xs text-gray-400 mb-1">Unit</label>
           <select value={unit} onChange={(e) => { setUnit(e.target.value); onChange(interval, e.target.value); }}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            className="bg-brand-input border border-brand-border-lt rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-gold">
             <option value="day">Day(s)</option>
             <option value="week">Week(s)</option>
             <option value="month">Month(s)</option>
@@ -651,7 +651,7 @@ function RefreshScheduler({ refreshInterval, refreshUnit, nextRefreshAt, lastRef
         </div>
       </div>
 
-      <div className="bg-gray-800 rounded-lg px-4 py-3 text-xs space-y-1">
+      <div className="bg-brand-input rounded-lg px-4 py-3 text-xs space-y-1">
         <div className="flex gap-2">
           <span className="text-gray-500">Next refresh:</span>
           <span className={interval > 0 ? "text-green-400 font-medium" : "text-gray-500"}>
@@ -761,8 +761,8 @@ export default function EditAgentPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -776,8 +776,8 @@ export default function EditAgentPage() {
     .replace(/{product_name}/g, "your selected item");
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
+    <div className="min-h-screen bg-brand-bg text-white">
+      <header className="border-b border-brand-border bg-brand-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center gap-4">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">← Dashboard</Link>
           <h1 className="text-lg font-semibold">{agent.storeName}</h1>
@@ -787,11 +787,11 @@ export default function EditAgentPage() {
 
       <main className="max-w-5xl mx-auto px-6 py-10">
         {/* Tab bar */}
-        <div className="flex gap-1 mb-8 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit">
+        <div className="flex gap-1 mb-8 bg-brand-card border border-brand-border rounded-xl p-1 w-fit">
           {(["settings", "customise", "knowledge"] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
-                activeTab === tab ? "bg-indigo-600 text-white shadow" : "text-gray-400 hover:text-white"
+                activeTab === tab ? "bg-brand-gold text-[#18110C] font-bold shadow" : "text-gray-400 hover:text-white"
               }`}>
               {tab === "settings" ? "Bot Settings" : tab === "customise" ? "Customise" : "Knowledge Base"}
             </button>
@@ -811,13 +811,13 @@ export default function EditAgentPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1.5">Bot Name</label>
                       <input value={botName} onChange={(e) => setBotName(e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" />
+                        className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-gold transition" />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1.5">Opening Message Template</label>
                       <textarea value={openingMessage} onChange={(e) => setOpeningMessage(e.target.value)}
-                        rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none text-sm" />
+                        rows={3} className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-gold transition resize-none text-sm" />
                       <p className="text-xs text-gray-500 mt-1">Variables: {"{bot_name}"}, {"{store_name}"}, {"{customer_name}"}, {"{product_name}"}</p>
                     </div>
 
@@ -832,7 +832,7 @@ export default function EditAgentPage() {
                         {["casual", "friendly", "professional"].map((t) => (
                           <button key={t} type="button" onClick={() => setTone(t)}
                             className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors capitalize border ${
-                              tone === t ? "bg-indigo-600 border-indigo-600 text-white" : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"
+                              tone === t ? "bg-brand-gold border-brand-gold text-[#18110C]" : "bg-brand-input border-brand-border-lt text-gray-400 hover:text-white"
                             }`}>{t}</button>
                         ))}
                       </div>
@@ -849,17 +849,17 @@ export default function EditAgentPage() {
 
                     <div className="flex gap-3 pt-2">
                       <button type="submit" disabled={saving}
-                        className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors">
+                        className="flex-1 bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 text-[#18110C] font-semibold py-3 rounded-xl transition-colors">
                         {saving ? "Saving..." : "Save Changes"}
                       </button>
                       <button type="button" onClick={handleRescan} disabled={rescanning}
-                        className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-200 font-semibold px-4 py-3 rounded-xl transition-colors text-sm">
+                        className="bg-brand-input hover:bg-brand-border disabled:opacity-50 text-gray-200 font-semibold px-4 py-3 rounded-xl transition-colors text-sm">
                         {rescanning ? "Scanning..." : "Re-scan Store"}
                       </button>
                     </div>
                   </form>
 
-                  <div className="mt-10 pt-6 border-t border-gray-800">
+                  <div className="mt-10 pt-6 border-t border-brand-border">
                     <h3 className="text-sm font-semibold text-red-400 mb-3">Danger Zone</h3>
                     <button onClick={() => setShowDeleteModal(true)}
                       className="bg-red-900/20 hover:bg-red-900/40 border border-red-800/40 text-red-400 font-medium px-5 py-2.5 rounded-xl transition-colors text-sm">
@@ -871,25 +871,25 @@ export default function EditAgentPage() {
                 {/* Preview */}
                 <div>
                   <h2 className="text-xl font-bold mb-6">Preview</h2>
-                  <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700 mb-4">
-                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-700">
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">{agent.storeName.charAt(0)}</div>
+                  <div className="bg-brand-input rounded-2xl p-4 border border-brand-border-lt mb-4">
+                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-brand-border-lt">
+                      <div className="w-8 h-8 rounded-full bg-brand-gold flex items-center justify-center text-xs font-bold">{agent.storeName.charAt(0)}</div>
                       <div>
                         <p className="text-xs font-semibold">{botName}</p>
                         <p className="text-xs text-green-400">Online</p>
                       </div>
                     </div>
-                    <div className="bg-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-100 max-w-[90%]">{preview}</div>
+                    <div className="bg-brand-border rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-100 max-w-[90%]">{preview}</div>
                     <p className="text-xs text-gray-600 mt-2 ml-1">{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
                   </div>
 
-                  <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+                  <div className="bg-brand-card border border-brand-border rounded-2xl p-4">
                     <p className="text-xs text-gray-500 mb-2">Demo Link</p>
-                    <p className="text-indigo-400 text-sm break-all font-mono">
+                    <p className="text-brand-gold text-sm break-all font-mono">
                       {typeof window !== "undefined" ? `${window.location.origin}/demo/${agent.id}` : ""}
                     </p>
                     <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/demo/${agent.id}`); showToast("Demo link copied!"); }}
-                      className="mt-3 w-full bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-600/30 text-indigo-400 text-sm py-2 rounded-xl transition-colors">
+                      className="mt-3 w-full bg-brand-gold/10 hover:bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-sm py-2 rounded-xl transition-colors">
                       Copy Demo Link
                     </button>
                   </div>
@@ -909,7 +909,7 @@ export default function EditAgentPage() {
                     <p className="text-sm text-gray-400 mt-1">Fine-tune bot behaviour for this specific client.</p>
                   </div>
                   <button onClick={handleSave} disabled={saving}
-                    className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm">
+                    className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 text-[#18110C] font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm">
                     {saving ? "Saving..." : "Save"}
                   </button>
                 </div>
@@ -929,7 +929,7 @@ export default function EditAgentPage() {
                     <p className="text-sm text-gray-400 mt-1">Everything your AI agent knows about {agent.storeName}</p>
                   </div>
                   <button onClick={handleRescan} disabled={rescanning}
-                    className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-200 font-semibold px-4 py-2 rounded-xl transition-colors text-sm border border-gray-700">
+                    className="bg-brand-input hover:bg-brand-border disabled:opacity-50 text-gray-200 font-semibold px-4 py-2 rounded-xl transition-colors text-sm border border-brand-border-lt">
                     {rescanning ? "Scanning..." : "Re-scan Store"}
                   </button>
                 </div>
@@ -947,11 +947,11 @@ export default function EditAgentPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-sm w-full">
+              exit={{ scale: 0.9, opacity: 0 }} className="bg-brand-card border border-brand-border rounded-2xl p-6 max-w-sm w-full">
               <h3 className="text-lg font-semibold mb-2">Delete Agent?</h3>
               <p className="text-gray-400 text-sm mb-6">This will permanently delete the agent and all conversation history. Cannot be undone.</p>
               <div className="flex gap-3">
-                <button onClick={() => setShowDeleteModal(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl transition-colors">Cancel</button>
+                <button onClick={() => setShowDeleteModal(false)} className="flex-1 bg-brand-input hover:bg-brand-border text-gray-300 py-2.5 rounded-xl transition-colors">Cancel</button>
                 <button onClick={handleDelete} disabled={deleting}
                   className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white py-2.5 rounded-xl transition-colors font-medium">
                   {deleting ? "Deleting..." : "Delete"}
@@ -966,7 +966,7 @@ export default function EditAgentPage() {
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-xl border border-gray-700 z-50">
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-input text-white text-sm px-5 py-3 rounded-full shadow-xl border border-brand-border-lt z-50">
             {toast}
           </motion.div>
         )}

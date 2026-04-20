@@ -52,7 +52,7 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 40 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-xl border border-gray-700 z-50"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-input text-white text-sm px-5 py-3 rounded-full shadow-xl border border-brand-border-lt z-50"
     >
       {message}
     </motion.div>
@@ -87,7 +87,7 @@ function DeployModal({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-lg w-full"
+        className="bg-brand-card border border-brand-border rounded-2xl p-6 max-w-lg w-full"
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-green-400">
@@ -104,11 +104,11 @@ function DeployModal({
             <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1.5">
               Webhook URL
             </label>
-            <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
-              <code className="text-indigo-300 text-xs flex-1 break-all">{result.webhookUrl}</code>
+            <div className="flex items-center gap-2 bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3">
+              <code className="text-brand-gold-lt text-xs flex-1 break-all">{result.webhookUrl}</code>
               <button
                 onClick={() => copy(result.webhookUrl, "url")}
-                className="text-xs text-gray-400 hover:text-white border border-gray-600 px-2.5 py-1.5 rounded-lg transition shrink-0"
+                className="text-xs text-gray-400 hover:text-white border border-brand-border-lt px-2.5 py-1.5 rounded-lg transition shrink-0"
               >
                 {copiedUrl ? "Copied!" : "Copy"}
               </button>
@@ -119,11 +119,11 @@ function DeployModal({
             <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1.5">
               Webhook Secret (HMAC)
             </label>
-            <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2 bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3">
               <code className="text-yellow-300 text-xs flex-1 break-all font-mono">{result.webhookSecret}</code>
               <button
                 onClick={() => copy(result.webhookSecret, "secret")}
-                className="text-xs text-gray-400 hover:text-white border border-gray-600 px-2.5 py-1.5 rounded-lg transition shrink-0"
+                className="text-xs text-gray-400 hover:text-white border border-brand-border-lt px-2.5 py-1.5 rounded-lg transition shrink-0"
               >
                 {copiedSecret ? "Copied!" : "Copy"}
               </button>
@@ -133,9 +133,9 @@ function DeployModal({
             </p>
           </div>
 
-          <div className="bg-indigo-900/20 border border-indigo-500/20 rounded-xl px-4 py-3 text-sm text-indigo-300">
+          <div className="bg-brand-gold/10 border border-brand-gold/20 rounded-xl px-4 py-3 text-sm text-brand-gold-lt">
             <strong>Next steps in GHL:</strong>
-            <ol className="mt-2 space-y-1 text-indigo-300/80 list-decimal list-inside text-xs">
+            <ol className="mt-2 space-y-1 text-brand-gold-lt/80 list-decimal list-inside text-xs">
               <li>Go to Automations → Create Workflow → SMS Inbound trigger</li>
               <li>Add a Webhook action, paste the URL above</li>
               <li>Add the secret to the webhook header verification</li>
@@ -146,7 +146,7 @@ function DeployModal({
 
         <button
           onClick={onClose}
-          className="w-full mt-5 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl transition-colors"
+          className="w-full mt-5 bg-brand-input hover:bg-brand-border text-gray-300 py-2.5 rounded-xl transition-colors"
         >
           Close
         </button>
@@ -262,29 +262,29 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-brand-bg text-white">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-brand-border bg-brand-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <h1 className="text-xl font-bold">
-            SMS2<span className="text-indigo-400">Cart</span>.com
+            SMS2<span className="text-brand-gold">Cart</span>.com
           </h1>
           <div className="flex items-center gap-3">
             <Link
               href="/pricing"
-              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-gray-800"
+              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-brand-input"
             >
               Pricing
             </Link>
             <Link
               href="/settings"
-              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-gray-800"
+              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-brand-input"
             >
               Settings
             </Link>
             <button
               onClick={handleLogout}
-              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-gray-800"
+              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-brand-input"
             >
               Logout
             </button>
@@ -303,7 +303,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/agents/new"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
+            className="bg-brand-gold hover:bg-brand-gold-lt text-[#18110C] font-bold font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
           >
             <span className="text-lg leading-none">+</span> Create New Agent
           </Link>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 animate-pulse h-52" />
+              <div key={i} className="bg-brand-card border border-brand-border rounded-2xl p-6 animate-pulse h-52" />
             ))}
           </div>
         ) : agents.length === 0 ? (
@@ -328,7 +328,7 @@ export default function DashboardPage() {
             </p>
             <Link
               href="/agents/new"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors inline-block"
+              className="bg-brand-gold hover:bg-brand-gold-lt text-[#18110C] font-bold font-semibold px-6 py-3 rounded-xl transition-colors inline-block"
             >
               Create Your First Agent
             </Link>
@@ -344,12 +344,12 @@ export default function DashboardPage() {
                   exit={{ opacity: 0, scale: 0.94, y: -10 }}
                   transition={{ delay: i * 0.07, duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
                   whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                  className="bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-indigo-500/40 transition-colors hover:shadow-2xl hover:shadow-indigo-900/10 group cursor-default"
+                  className="bg-brand-card border border-brand-border rounded-2xl p-6 hover:border-brand-gold/40 transition-colors hover:shadow-2xl hover:shadow-brand-gold/10 group cursor-default"
                 >
                   {/* Store header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
+                      <div className="w-10 h-10 rounded-full bg-brand-gold/20 border border-brand-gold/30 flex items-center justify-center text-brand-gold font-bold text-sm">
                         {agent.storeName.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -372,12 +372,12 @@ export default function DashboardPage() {
 
                   {/* Stats */}
                   <div className="flex items-center gap-2 mb-5 flex-wrap">
-                    <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-brand-input text-gray-300 px-2.5 py-1 rounded-full">
                       {agent.productCount} products
                     </span>
                     <span
                       title="Times the demo was opened"
-                      className="text-xs bg-indigo-900/40 text-indigo-400 border border-indigo-800/40 px-2.5 py-1 rounded-full"
+                      className="text-xs bg-brand-gold/15 text-brand-gold border border-brand-gold/20 px-2.5 py-1 rounded-full"
                     >
                       👁 {agent.demoViews ?? 0} views
                     </span>
@@ -413,7 +413,7 @@ export default function DashboardPage() {
                       <motion.button
                         whileTap={{ scale: 0.97 }}
                         onClick={() => copyDemoLink(agent.id)}
-                        className="w-full bg-indigo-600/10 hover:bg-indigo-600/25 border border-indigo-500/30 hover:border-indigo-500/60 text-indigo-400 text-sm font-medium py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-indigo-900/20"
+                        className="w-full bg-brand-gold/10 hover:bg-brand-gold/25 border border-brand-gold/30 hover:border-brand-gold/60 text-brand-gold text-sm font-medium py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-brand-gold/10"
                       >
                         Copy Demo Link
                       </motion.button>
@@ -421,13 +421,13 @@ export default function DashboardPage() {
                     <div className="flex gap-2">
                       <Link
                         href={`/agents/${agent.id}/edit`}
-                        className="flex-1 text-center bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm py-2 rounded-xl transition-colors"
+                        className="flex-1 text-center bg-brand-input hover:bg-brand-border text-gray-300 text-sm py-2 rounded-xl transition-colors"
                       >
                         Edit
                       </Link>
                       <button
                         onClick={() => setDeleteTarget(agent.id)}
-                        className="flex-1 bg-gray-800 hover:bg-red-900/30 hover:text-red-400 text-gray-300 text-sm py-2 px-3 rounded-xl transition-colors"
+                        className="flex-1 bg-brand-input hover:bg-red-900/30 hover:text-red-400 text-gray-300 text-sm py-2 px-3 rounded-xl transition-colors"
                       >
                         Delete
                       </button>
@@ -446,7 +446,7 @@ export default function DashboardPage() {
                             </button>
                             <button
                               onClick={() => handleUndeploy(agent.id)}
-                              className="flex-1 bg-gray-800 hover:bg-red-900/20 hover:text-red-400 text-gray-400 text-xs font-medium py-2 rounded-xl transition"
+                              className="flex-1 bg-brand-input hover:bg-red-900/20 hover:text-red-400 text-gray-400 text-xs font-medium py-2 rounded-xl transition"
                             >
                               Undeploy
                             </button>
@@ -454,7 +454,7 @@ export default function DashboardPage() {
                           <button
                             onClick={() => handleExportSnapshot(agent.id, agent.storeName)}
                             disabled={exportingId === agent.id}
-                            className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-xs font-medium py-2 rounded-xl transition disabled:opacity-50"
+                            className="w-full bg-brand-gold/10 hover:bg-brand-gold/20 border border-brand-gold/30 text-brand-gold text-xs font-medium py-2 rounded-xl transition disabled:opacity-50"
                           >
                             {exportingId === agent.id ? "Exporting..." : "Export GHL Snapshot ↓"}
                           </button>
@@ -471,7 +471,7 @@ export default function DashboardPage() {
                     ) : (
                       <button
                         disabled
-                        className="w-full bg-gray-800/50 text-gray-600 text-sm py-2 rounded-xl cursor-not-allowed"
+                        className="w-full bg-brand-input/50 text-gray-600 text-sm py-2 rounded-xl cursor-not-allowed"
                       >
                         Deploy to GHL (agent must be ready)
                       </button>
@@ -497,7 +497,7 @@ export default function DashboardPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-sm w-full"
+              className="bg-brand-card border border-brand-border rounded-2xl p-6 max-w-sm w-full"
             >
               <h3 className="text-lg font-semibold mb-2">Delete Agent?</h3>
               <p className="text-gray-400 text-sm mb-6">
@@ -506,7 +506,7 @@ export default function DashboardPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl transition-colors"
+                  className="flex-1 bg-brand-input hover:bg-brand-border text-gray-300 py-2.5 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>

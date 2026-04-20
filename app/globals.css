@@ -1,26 +1,43 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ── SMS2Cart brand color tokens — matches sms2cart.com palette ──────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Backgrounds */
+  --color-brand-bg:        #18110C;   /* page background — very dark brown    */
+  --color-brand-card:      #241C15;   /* card / panel background              */
+  --color-brand-card-alt:  #1F1712;   /* slightly darker card variant         */
+  --color-brand-input:     #2D221A;   /* input / hover background             */
+  --color-brand-border:    #3D3329;   /* borders                              */
+  --color-brand-border-lt: #4A3D30;   /* lighter border / divider             */
+
+  /* Accent — golden amber (#FFB300 ≈ hsl 42 100% 50%) */
+  --color-brand-gold:      #FFB300;
+  --color-brand-gold-lt:   #FFC933;
+  --color-brand-gold-dk:   #E6A200;
+
+  /* Text */
+  --color-brand-text:      #EAEBEA;
+  --color-brand-muted:     #8B7B6B;
+  --color-brand-muted-lt:  #A89A8A;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #18110C;
+  --foreground: #EAEBEA;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── Golden button gradient ──────────────────────────────────────────────── */
+.btn-gold {
+  background: linear-gradient(135deg, #FFB300 0%, #E07000 100%);
+  color: #18110C;
+  font-weight: 700;
+}
+.btn-gold:hover {
+  background: linear-gradient(135deg, #FFC933 0%, #F08010 100%);
 }

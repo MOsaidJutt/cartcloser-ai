@@ -41,10 +41,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center px-4">
       {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -left-40 w-80 h-80 bg-brand-gold/20 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-purple-600/20 rounded-full blur-3xl" />
       </div>
 
@@ -57,22 +57,22 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">
-            SMS<span className="text-indigo-400">2</span>Cart
+            SMS<span className="text-brand-gold">2</span>Cart
           </h1>
           <p className="text-gray-400 mt-2 text-sm">AI-powered abandoned cart recovery via SMS</p>
         </div>
 
         {/* Card */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-brand-card border border-brand-border rounded-2xl p-8 shadow-2xl">
           {/* Mode toggle */}
-          <div className="flex rounded-xl overflow-hidden border border-gray-700 mb-6">
+          <div className="flex rounded-xl overflow-hidden border border-brand-border-lt mb-6">
             {(["login", "register"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => { setMode(m); setError(""); }}
                 className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
                   mode === m
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-brand-gold text-[#18110C] font-bold"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@agency.com"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent transition"
               />
             </div>
 
@@ -107,7 +107,7 @@ export default function LoginPage() {
                 required
                 minLength={8}
                 placeholder="Min. 8 characters"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent transition"
               />
             </div>
 
@@ -127,7 +127,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors mt-2"
+              className="w-full bg-brand-gold hover:bg-brand-gold-lt disabled:bg-brand-border disabled:cursor-not-allowed text-[#18110C] font-semibold py-3 rounded-xl transition-colors mt-2"
             >
               {loading
                 ? "Please wait..."

@@ -166,8 +166,8 @@ export default function SettingsPage() {
       : "/api/webhook/ghl";
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
+    <div className="min-h-screen bg-brand-bg text-white">
+      <header className="border-b border-brand-border bg-brand-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center gap-4">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
             ← Dashboard
@@ -182,7 +182,7 @@ export default function SettingsPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-900 border border-gray-800 rounded-2xl p-6"
+          className="bg-brand-card border border-brand-border rounded-2xl p-6"
         >
           <h2 className="text-lg font-semibold mb-1">OpenAI API Key</h2>
           <p className="text-gray-400 text-sm mb-5">
@@ -202,7 +202,7 @@ export default function SettingsPage() {
                 value={openaiKey}
                 onChange={(e) => setOpenaiKey(e.target.value)}
                 placeholder={hasKey ? "Enter new key to replace..." : "sk-proj-..."}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 pr-24 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 pr-24 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold transition"
               />
               <button
                 type="button"
@@ -215,7 +215,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={saving || !openaiKey}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
+              className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
             >
               {saving ? "Saving..." : "Save Key"}
             </button>
@@ -227,7 +227,7 @@ export default function SettingsPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gray-900 border border-gray-800 rounded-2xl p-6"
+          className="bg-brand-card border border-brand-border rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-semibold">GoHighLevel Integration</h2>
@@ -245,7 +245,7 @@ export default function SettingsPage() {
           {ghlConnected ? (
             /* ── Connected state ─────────────────────────────────────────── */
             <div className="space-y-4">
-              <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 space-y-1">
+              <div className="bg-brand-input/60 border border-brand-border-lt rounded-xl px-4 py-3 space-y-1">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Connected Account</p>
                 <p className="text-white font-medium">{ghlLocationName}</p>
                 <p className="text-gray-400 text-sm font-mono">{ghlSavedLocationId}</p>
@@ -255,8 +255,8 @@ export default function SettingsPage() {
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">
                   Inbound Webhook URL (per agent)
                 </p>
-                <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 flex items-center gap-3">
-                  <code className="text-indigo-300 text-xs flex-1 break-all">
+                <div className="bg-brand-input/60 border border-brand-border-lt rounded-xl px-4 py-3 flex items-center gap-3">
+                  <code className="text-brand-gold-lt text-xs flex-1 break-all">
                     {webhookBase}/{"{"}<span className="text-yellow-300">agentId</span>{"}"}
                   </code>
                   <button
@@ -265,7 +265,7 @@ export default function SettingsPage() {
                       navigator.clipboard.writeText(`${webhookBase}/{agentId}`);
                       showToast("Copied!");
                     }}
-                    className="text-xs text-gray-400 hover:text-white border border-gray-600 px-3 py-1.5 rounded-lg transition"
+                    className="text-xs text-gray-400 hover:text-white border border-brand-border-lt px-3 py-1.5 rounded-lg transition"
                   >
                     Copy
                   </button>
@@ -279,7 +279,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={testGhl}
-                  className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
+                  className="bg-brand-border hover:bg-brand-border-lt text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
                 >
                   Test Connection
                 </button>
@@ -303,7 +303,7 @@ export default function SettingsPage() {
                     value={ghlToken}
                     onChange={(e) => setGhlToken(e.target.value)}
                     placeholder="eyJhbGci..."
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 pr-24 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                    className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 pr-24 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold transition"
                   />
                   <button
                     type="button"
@@ -325,7 +325,7 @@ export default function SettingsPage() {
                   value={ghlLocationId}
                   onChange={(e) => setGhlLocationId(e.target.value)}
                   placeholder="aBcDeFgHiJkL..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold transition"
                 />
                 <p className="text-gray-500 text-xs mt-1.5">
                   Found in GHL → Settings → Business Profile → Location ID
@@ -335,7 +335,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={ghlConnecting || !ghlToken.trim() || !ghlLocationId.trim()}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
+                className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
               >
                 {ghlConnecting ? "Connecting..." : "Connect GHL"}
               </button>
@@ -347,7 +347,7 @@ export default function SettingsPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gray-900 border border-gray-800 rounded-2xl p-6"
+          className="bg-brand-card border border-brand-border rounded-2xl p-6"
         >
           <h2 className="text-lg font-semibold mb-1">Billing & Plan</h2>
           <p className="text-gray-400 text-sm mb-5">
@@ -357,7 +357,7 @@ export default function SettingsPage() {
           {billing ? (
             <div className="space-y-4">
               {/* Current plan badge */}
-              <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-4 flex items-center justify-between">
+              <div className="bg-brand-input/60 border border-brand-border-lt rounded-xl px-4 py-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Plan</p>
                   <p className="text-white font-semibold capitalize text-lg">{billing.planName}</p>
@@ -378,7 +378,7 @@ export default function SettingsPage() {
                     ? "bg-green-500/10 text-green-400 border-green-500/20"
                     : billing.planStatus === "past_due"
                     ? "bg-red-500/10 text-red-400 border-red-500/20"
-                    : "bg-gray-700 text-gray-400 border-gray-600"
+                    : "bg-brand-border text-gray-400 border-brand-border-lt"
                 }`}>
                   {billing.planStatus === "free" ? "Free" : billing.planStatus}
                 </span>
@@ -398,7 +398,7 @@ export default function SettingsPage() {
               <div className="flex gap-3 pt-1">
                 <Link
                   href="/pricing"
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
+                  className="bg-brand-gold hover:bg-brand-gold-lt text-[#18110C] font-bold text-sm font-medium px-5 py-2.5 rounded-xl transition"
                 >
                   {billing.planName === "free" ? "Upgrade Plan" : "Change Plan"}
                 </Link>
@@ -407,7 +407,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={openBillingPortal}
                     disabled={billingLoading}
-                    className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
+                    className="bg-brand-border hover:bg-brand-border-lt disabled:opacity-50 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
                   >
                     {billingLoading ? "Opening..." : "Manage Billing"}
                   </button>
@@ -429,7 +429,7 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-xl border border-gray-700 z-50"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-input text-white text-sm px-5 py-3 rounded-full shadow-xl border border-brand-border-lt z-50"
           >
             {toast}
           </motion.div>

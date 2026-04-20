@@ -44,8 +44,8 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
+    <div className="min-h-screen bg-brand-bg text-white">
+      <header className="border-b border-brand-border bg-brand-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center gap-4">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition text-sm">
             ← Dashboard
@@ -74,13 +74,13 @@ export default function PricingPage() {
                 transition={{ delay: i * 0.08 }}
                 className={`relative rounded-2xl border p-6 flex flex-col gap-5 ${
                   isPro
-                    ? "bg-indigo-600/10 border-indigo-500/50 ring-2 ring-indigo-500/30"
-                    : "bg-gray-900 border-gray-800"
+                    ? "bg-brand-gold/10 border-brand-gold/50 ring-2 ring-brand-gold/30"
+                    : "bg-brand-card border-brand-border"
                 }`}
               >
                 {isPro && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    <span className="bg-brand-gold text-[#18110C] font-bold text-xs font-bold px-3 py-1 rounded-full">
                       MOST POPULAR
                     </span>
                   </div>
@@ -112,10 +112,10 @@ export default function PricingPage() {
                   disabled={loading === planKey}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
                     isPro
-                      ? "bg-indigo-600 hover:bg-indigo-500 text-white"
+                      ? "bg-brand-gold hover:bg-brand-gold-lt text-[#18110C] font-bold"
                       : planKey === "free"
-                      ? "bg-gray-800 hover:bg-gray-700 text-gray-300"
-                      : "bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
+                      ? "bg-brand-input hover:bg-brand-border text-gray-300"
+                      : "bg-brand-input hover:bg-brand-border text-white border border-brand-border-lt"
                   }`}
                 >
                   {loading === planKey
@@ -132,14 +132,14 @@ export default function PricingPage() {
         <p className="text-center text-gray-500 text-sm mt-10">
           All plans include a 7-day free trial. Cancel anytime.
           {" "}
-          <Link href="/settings" className="text-indigo-400 hover:underline">
+          <Link href="/settings" className="text-brand-gold hover:underline">
             Manage billing in Settings.
           </Link>
         </p>
       </main>
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-xl border border-gray-700 z-50">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-input text-white text-sm px-5 py-3 rounded-full shadow-xl border border-brand-border-lt z-50">
           {toast}
         </div>
       )}

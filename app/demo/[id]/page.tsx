@@ -110,7 +110,7 @@ function renderWithLinks(text: string, isUser: boolean, onLinkClick?: () => void
         target="_blank"
         rel="noopener noreferrer"
         className={`underline underline-offset-2 break-all ${
-          isUser ? "text-blue-100 hover:text-white" : "text-indigo-600 hover:text-indigo-800"
+          isUser ? "text-blue-100 hover:text-white" : "text-brand-gold hover:text-brand-gold"
         }`}
         onClick={(e) => {
           e.stopPropagation();
@@ -169,15 +169,15 @@ function MessageBubble({ message, avatarInitial, onLinkClick }: { message: Messa
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="hidden md:flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="hidden md:flex items-center justify-center min-h-screen bg-gradient-to-br from-brand-bg via-brand-card-alt to-brand-card">
       <div
         className="relative bg-white shadow-2xl"
         style={{ width: 390, height: 844, borderRadius: 50, border: "8px solid #1a1a1a", overflow: "hidden" }}
       >
         {/* Notch */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#1a1a1a] rounded-b-3xl z-20 flex items-center justify-center gap-2">
-          <div className="w-2 h-2 bg-gray-700 rounded-full" />
-          <div className="w-12 h-3 bg-gray-800 rounded-full" />
+          <div className="w-2 h-2 bg-brand-border rounded-full" />
+          <div className="w-12 h-3 bg-brand-input rounded-full" />
         </div>
         {/* Status bar */}
         <div className="absolute top-0 left-0 right-0 h-12 flex items-center justify-between px-8 pt-1 z-10">
@@ -187,14 +187,14 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-1">
             <div className="flex gap-0.5 items-end h-3">
               {[3, 5, 7, 9].map((h) => (
-                <div key={h} className="w-1 bg-gray-900 rounded-sm" style={{ height: h }} />
+                <div key={h} className="w-1 bg-brand-card rounded-sm" style={{ height: h }} />
               ))}
             </div>
             <span className="text-xs font-semibold ml-1">100%</span>
           </div>
         </div>
         <div className="absolute inset-0 pt-12 flex flex-col">{children}</div>
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-900 rounded-full z-20" />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-brand-card rounded-full z-20" />
       </div>
     </div>
   );
@@ -219,15 +219,15 @@ function LandingScreen({ agent, onStart }: { agent: AgentInfo; onStart: (name: s
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
-        className="w-20 h-20 rounded-full bg-indigo-100 border-4 border-indigo-200 flex items-center justify-center mb-4 overflow-hidden"
+        className="w-20 h-20 rounded-full bg-brand-gold border-4 border-brand-gold flex items-center justify-center mb-4 overflow-hidden"
       >
         <StoreFavicon url={agent.storeUrl} name={agent.storeName} />
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">{agent.storeName}</h1>
-        <p className="text-indigo-600 font-semibold text-sm mb-4">AI Cart Recovery Demo</p>
-        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-5 py-3 mb-6 text-sm text-indigo-700 font-medium">
+        <p className="text-brand-gold font-semibold text-sm mb-4">AI Cart Recovery Demo</p>
+        <div className="bg-brand-gold border border-brand-gold rounded-2xl px-5 py-3 mb-6 text-sm text-brand-gold font-medium">
           70% of carts are abandoned — AI recovers them
         </div>
         <p className="text-gray-500 text-sm mb-6 leading-relaxed">
@@ -247,13 +247,13 @@ function LandingScreen({ agent, onStart }: { agent: AgentInfo; onStart: (name: s
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter your first name"
-          className="w-full border-2 border-gray-200 rounded-2xl px-5 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-400 transition text-center text-lg"
+          className="w-full border-2 border-gray-200 rounded-2xl px-5 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-brand-gold transition text-center text-lg"
           autoFocus
         />
         <button
           type="submit"
           disabled={!name.trim() || loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl transition-colors text-lg"
+          className="w-full bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl transition-colors text-lg"
         >
           {loading ? "Starting..." : "Start Demo →"}
         </button>
@@ -318,7 +318,7 @@ function ChatScreen({
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
-        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="w-9 h-9 rounded-full bg-brand-gold flex items-center justify-center overflow-hidden flex-shrink-0">
           <StoreFavicon url={agent.storeUrl} name={agent.storeName} />
         </div>
         <div className="flex-1 min-w-0">
@@ -381,7 +381,7 @@ function ChatScreen({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+            className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-gold-300 transition"
           />
           <button
             type="submit"
@@ -700,7 +700,7 @@ export default function DemoPage() {
   if (!agent) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
