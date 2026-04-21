@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { PLANS } from "@/lib/stripe";
+import { PLANS } from "@/lib/plans";
 
 export default function SettingsPage() {
   const router = useRouter();

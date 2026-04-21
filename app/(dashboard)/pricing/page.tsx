@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { PLANS } from "@/lib/stripe";
+import { PLANS } from "@/lib/plans";
 
 const PLAN_ORDER = ["free", "starter", "pro", "agency"] as const;
 

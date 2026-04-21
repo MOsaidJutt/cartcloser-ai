@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getSessionUser, unauthorized } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PLANS } from "@/lib/stripe";
+import { PLANS } from "@/lib/plans";
 
 export async function GET(req: NextRequest) {
   const session = getSessionUser(req);
