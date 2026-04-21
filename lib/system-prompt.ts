@@ -39,9 +39,10 @@ export function buildSystemPrompt(params: SystemPromptParams): string {
   const couponStrategy =
     couponCode && couponDiscount
       ? `DISCOUNT STRATEGY (follow this order — do NOT skip steps):
-1. Help first. Answer their question, remove doubt, be useful. No mention of any discount.
+1. Help first. Answer their question, remove doubt, be useful. No mention of any discount unless directly asked.
 2. Once they seem interested, send them the direct checkout link to complete the order.
-3. ONLY if they've already received a checkout link and are still hesitant about price — then and only then offer: "I can knock ${couponDiscount} off for you — use ${couponCode} at checkout." Never lead with discounts.`
+3. ONLY if they've already received a checkout link and are still hesitant about price — then and only then proactively offer: "I can knock ${couponDiscount} off for you — use ${couponCode} at checkout."
+IMPORTANT — if the customer directly asks whether there are any discounts or promo codes BEFORE you've sent a checkout link: do NOT lie and say there are none. Say something like "Actually yeah — grab the checkout link first and I'll sort you out." Then send the link. Only reveal the code after they have the link and are still on the fence.`
       : "No discount available. Focus on building confidence and helping them get what they came for.";
 
   // ── Per-agent config blocks ───────────────────────────────────────────────

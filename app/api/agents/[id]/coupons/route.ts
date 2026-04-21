@@ -92,11 +92,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { couponId, action } = await req.json(); // action: "activate" | "deactivate" | "delete"
 
   if (action === "delete") {
+    // Read coupon before deleting so we know if it was the active one
+    const toDelete = await (prisma as any).coupon.findUnique({ where: { id: couponId } }).catch(() => null);
     await (prisma as any).coupon.delete({ where: { id: couponId } });
 
-    // If this was the active coupon, clear agent coupon fields
-    const deleted = await (prisma as any).coupon.findUnique({ where: { id: couponId } }).catch(() => null);
-    if (!deleted || (agent as any).couponCode === deleted?.code) {
+    // If this was the active coupon, clear agent coupon fields and rebuild system prompt
+    if (toDelete && (agent as any).couponCode === toDelete.code) {
       const systemPrompt = buildSystemPrompt({
         botName: agent.botName, storeName: agent.storeName, storeUrl: agent.storeUrl,
         knowledgeBase: agent.knowledgeBase, couponCode: null, couponDiscount: null,
