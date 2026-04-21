@@ -155,6 +155,8 @@ function DeployModal({
   );
 }
 
+const ADMIN_EMAIL = "nick.gaulton1@gmail.com";
+
 export default function DashboardPage() {
   const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -165,6 +167,7 @@ export default function DashboardPage() {
   const [deployingId, setDeployingId] = useState<string | null>(null);
   const [deployResult, setDeployResult] = useState<DeployResult | null>(null);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState("");
   const chatClicksRef = useRef<Record<string, number>>({});
   const chatClickTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -175,6 +178,12 @@ export default function DashboardPage() {
     setAgents(data.agents ?? []);
     setLoading(false);
   }, [router]);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => setUserEmail(d.user?.email ?? ""));
+  }, []);
 
   useEffect(() => { fetchAgents(); }, [fetchAgents]);
 
@@ -270,12 +279,14 @@ export default function DashboardPage() {
             SMS2<span className="text-brand-gold">Cart</span>.com
           </h1>
           <div className="flex items-center gap-3">
-            <Link
-              href="/pricing"
-              className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-brand-input"
-            >
-              Pricing
-            </Link>
+            {userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+              <Link
+                href="/admin"
+                className="text-sm text-brand-gold hover:text-brand-gold-lt border border-brand-gold/30 hover:border-brand-gold/60 transition px-3 py-1.5 rounded-lg hover:bg-brand-gold/10 font-medium"
+              >
+                Admin Panel
+              </Link>
+            )}
             <Link
               href="/settings"
               className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-brand-input"

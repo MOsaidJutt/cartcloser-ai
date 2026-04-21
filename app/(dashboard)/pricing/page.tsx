@@ -1,17 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PLANS } from "@/lib/plans";
 
 const PLAN_ORDER = ["free", "starter", "pro", "agency"] as const;
+const ADMIN_EMAIL = "nick.gaulton1@gmail.com";
 
 export default function PricingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [toast, setToast] = useState("");
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => {
+        const email: string = d.user?.email ?? "";
+        if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+          router.replace("/dashboard");
+        } else {
+          setReady(true);
+        }
+      });
+  }, [router]);
+
+  if (!ready) return null;
 
   function showToast(msg: string) {
     setToast(msg);
