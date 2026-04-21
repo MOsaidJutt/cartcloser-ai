@@ -36,6 +36,9 @@ interface Agent {
   refreshUnit: string | null;
   nextRefreshAt: string | null;
   lastRefreshedAt: string | null;
+  ghlLocationId: string | null;
+  ghlDeployed: boolean;
+  ghlWebhookSecret: string | null;
 }
 
 interface KBSection { heading: string; content: string; }
@@ -688,7 +691,7 @@ export default function EditAgentPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState("");
-  const [activeTab, setActiveTab] = useState<"settings" | "customise" | "knowledge">("settings");
+  const [activeTab, setActiveTab] = useState<"settings" | "customise" | "knowledge" | "deploy">("settings");
 
   // Basic settings
   const [botName, setBotName] = useState("");
@@ -701,6 +704,16 @@ export default function EditAgentPage() {
   // Refresh schedule
   const [refreshInterval, setRefreshInterval] = useState<number>(0);
   const [refreshUnit, setRefreshUnit] = useState<string>("week");
+
+  // GHL deploy state
+  const [ghlLocationId, setGhlLocationId] = useState("");
+  const [ghlDeployed, setGhlDeployed] = useState(false);
+  const [ghlWebhookSecret, setGhlWebhookSecret] = useState<string | null>(null);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [undeploying, setUndeploying] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
 
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); }, []);
 
@@ -717,6 +730,9 @@ export default function EditAgentPage() {
         setConfig(a.config ? JSON.parse(a.config) : {});
         setRefreshInterval(a.refreshInterval ?? 0);
         setRefreshUnit(a.refreshUnit ?? "week");
+        setGhlLocationId(a.ghlLocationId ?? "");
+        setGhlDeployed(a.ghlDeployed ?? false);
+        setGhlWebhookSecret(a.ghlWebhookSecret ?? null);
         setLoading(false);
       });
   }, [id, router]);
@@ -759,6 +775,43 @@ export default function EditAgentPage() {
     router.push("/dashboard");
   }
 
+  async function saveLocationId() {
+    setSavingLocation(true);
+    const res = await fetch(`/api/agents/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ghlLocationId: ghlLocationId.trim() }),
+    });
+    setSavingLocation(false);
+    if (res.ok) showToast("Location ID saved!");
+    else showToast("Failed to save Location ID");
+  }
+
+  async function handleDeploy() {
+    setDeploying(true);
+    const res = await fetch(`/api/agents/${id}/deploy-ghl`, { method: "POST" });
+    const data = await res.json();
+    setDeploying(false);
+    if (!res.ok) { showToast(data.error ?? "Deploy failed"); return; }
+    setGhlDeployed(true);
+    setGhlWebhookSecret(data.webhookSecret);
+    showToast("Agent deployed to GHL!");
+  }
+
+  async function handleUndeploy() {
+    if (!confirm("Remove this agent from GHL? The webhook will stop working.")) return;
+    setUndeploying(true);
+    const res = await fetch(`/api/agents/${id}/undeploy-ghl`, { method: "DELETE" });
+    setUndeploying(false);
+    if (res.ok) { setGhlDeployed(false); setGhlWebhookSecret(null); showToast("Agent undeployed from GHL"); }
+  }
+
+  function copyText(text: string, which: "url" | "secret") {
+    navigator.clipboard.writeText(text);
+    if (which === "url") { setCopiedUrl(true); setTimeout(() => setCopiedUrl(false), 2000); }
+    else { setCopiedSecret(true); setTimeout(() => setCopiedSecret(false), 2000); }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -788,12 +841,17 @@ export default function EditAgentPage() {
       <main className="max-w-5xl mx-auto px-6 py-10">
         {/* Tab bar */}
         <div className="flex gap-1 mb-8 bg-brand-card border border-brand-border rounded-xl p-1 w-fit">
-          {(["settings", "customise", "knowledge"] as const).map((tab) => (
+          {(["settings", "customise", "knowledge", "deploy"] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
                 activeTab === tab ? "bg-brand-gold text-[#18110C] font-bold shadow" : "text-gray-400 hover:text-white"
               }`}>
-              {tab === "settings" ? "Bot Settings" : tab === "customise" ? "Customise" : "Knowledge Base"}
+              {tab === "settings" ? "Bot Settings" : tab === "customise" ? "Customise" : tab === "knowledge" ? "Knowledge Base" : (
+                <span className="flex items-center gap-1.5">
+                  Deploy to GHL
+                  {ghlDeployed && <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -934,6 +992,117 @@ export default function EditAgentPage() {
                   </button>
                 </div>
                 <KnowledgeBaseViewer agentId={id} />
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── DEPLOY TAB ── */}
+          {activeTab === "deploy" && (
+            <motion.div key="deploy" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+              <div className="max-w-2xl space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold">Deploy to GoHighLevel</h2>
+                  <p className="text-sm text-gray-400 mt-1">Connect this agent to a specific GHL sub-account (client location).</p>
+                </div>
+
+                {/* Step 1 — Location ID */}
+                <div className="bg-brand-card border border-brand-border rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-brand-gold text-[#18110C] text-xs font-bold flex items-center justify-center">1</span>
+                    <h3 className="font-semibold">Set GHL Location ID</h3>
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    Each agent maps to one GHL sub-account. Enter the Location ID for this client's sub-account.
+                    Found in GHL → (switch to sub-account) → Settings → Business Profile → Location ID.
+                  </p>
+                  <div className="flex gap-3">
+                    <input
+                      value={ghlLocationId}
+                      onChange={(e) => setGhlLocationId(e.target.value)}
+                      placeholder="aBcDeFgHiJkLmNoP..."
+                      className="flex-1 bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold transition text-sm font-mono"
+                    />
+                    <button onClick={saveLocationId} disabled={savingLocation || !ghlLocationId.trim()}
+                      className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 text-[#18110C] font-bold px-5 py-3 rounded-xl transition-colors text-sm">
+                      {savingLocation ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                  {ghlLocationId && (
+                    <p className="text-green-400 text-xs">✓ Location ID set: <span className="font-mono">{ghlLocationId}</span></p>
+                  )}
+                </div>
+
+                {/* Step 2 — Deploy */}
+                <div className="bg-brand-card border border-brand-border rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-brand-gold text-[#18110C] text-xs font-bold flex items-center justify-center">2</span>
+                    <h3 className="font-semibold">Deploy Agent</h3>
+                    {ghlDeployed && (
+                      <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full ml-auto">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Live
+                      </span>
+                    )}
+                  </div>
+
+                  {!ghlDeployed ? (
+                    <div className="space-y-3">
+                      <p className="text-gray-400 text-sm">Generate a webhook URL and secret for this agent. You'll add these to a GHL workflow.</p>
+                      <button onClick={handleDeploy} disabled={deploying || !ghlLocationId.trim() || agent?.status !== "ready"}
+                        className="w-full bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 font-semibold py-3 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed">
+                        {deploying ? "Deploying..." : "Deploy to GHL"}
+                      </button>
+                      {!ghlLocationId.trim() && <p className="text-yellow-400 text-xs">⚠ Set Location ID above first</p>}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Webhook URL */}
+                      <div>
+                        <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1.5">Webhook URL</label>
+                        <div className="flex items-center gap-2 bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3">
+                          <code className="text-brand-gold text-xs flex-1 break-all">
+                            {typeof window !== "undefined" ? window.location.origin : ""}/api/webhook/ghl/{agent?.id}
+                          </code>
+                          <button onClick={() => copyText(`${window.location.origin}/api/webhook/ghl/${agent?.id}`, "url")}
+                            className="text-xs text-gray-400 hover:text-white border border-brand-border-lt px-2.5 py-1.5 rounded-lg transition shrink-0">
+                            {copiedUrl ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Webhook Secret */}
+                      {ghlWebhookSecret && (
+                        <div>
+                          <label className="block text-xs text-gray-500 uppercase tracking-wide mb-1.5">Webhook Secret (HMAC)</label>
+                          <div className="flex items-center gap-2 bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3">
+                            <code className="text-yellow-300 text-xs flex-1 break-all font-mono">{ghlWebhookSecret}</code>
+                            <button onClick={() => copyText(ghlWebhookSecret, "secret")}
+                              className="text-xs text-gray-400 hover:text-white border border-brand-border-lt px-2.5 py-1.5 rounded-lg transition shrink-0">
+                              {copiedSecret ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* GHL instructions */}
+                      <div className="bg-brand-gold/10 border border-brand-gold/20 rounded-xl px-4 py-3 text-sm text-brand-gold">
+                        <strong>Next steps in GHL ({ghlLocationId}):</strong>
+                        <ol className="mt-2 space-y-1 text-brand-gold/80 list-decimal list-inside text-xs">
+                          <li>Switch to this client's sub-account in GHL</li>
+                          <li>Go to Automations → New Workflow → SMS Inbound trigger</li>
+                          <li>Add a Webhook action → paste the URL above</li>
+                          <li>Add the secret to webhook header verification</li>
+                          <li>Activate the workflow</li>
+                        </ol>
+                      </div>
+
+                      <button onClick={handleUndeploy} disabled={undeploying}
+                        className="w-full bg-red-900/20 hover:bg-red-900/40 border border-red-800/40 text-red-400 text-sm font-medium py-2.5 rounded-xl transition disabled:opacity-50">
+                        {undeploying ? "Removing..." : "Undeploy from GHL"}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}

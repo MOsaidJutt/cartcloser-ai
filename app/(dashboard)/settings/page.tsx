@@ -111,24 +111,20 @@ export default function SettingsPage() {
   // ── Connect GHL ───────────────────────────────────────────────────────────
   async function connectGhl(e: React.FormEvent) {
     e.preventDefault();
-    if (!ghlToken.trim() || !ghlLocationId.trim()) {
-      showToast("Both fields are required", 3000);
+    if (!ghlToken.trim()) {
+      showToast("API token is required", 3000);
       return;
     }
     setGhlConnecting(true);
     const res = await fetch("/api/settings/ghl", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ghlApiToken: ghlToken, ghlLocationId }),
+      body: JSON.stringify({ ghlApiToken: ghlToken }),
     });
     setGhlConnecting(false);
     if (res.ok) {
-      const d = await res.json();
       setGhlConnected(true);
-      setGhlSavedLocationId(d.locationId ?? ghlLocationId);
-      setGhlLocationName(d.locationName ?? "Connected");
       setGhlToken("");
-      setGhlLocationId("");
       showToast("GHL account connected!");
     } else {
       const d = await res.json();
@@ -245,33 +241,14 @@ export default function SettingsPage() {
           {ghlConnected ? (
             /* ── Connected state ─────────────────────────────────────────── */
             <div className="space-y-4">
-              <div className="bg-brand-input/60 border border-brand-border-lt rounded-xl px-4 py-3 space-y-1">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Connected Account</p>
-                <p className="text-white font-medium">{ghlLocationName}</p>
-                <p className="text-gray-400 text-sm font-mono">{ghlSavedLocationId}</p>
+              <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3">
+                <span className="text-green-400 text-sm font-medium">✓ GHL Agency account connected</span>
               </div>
 
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">
-                  Inbound Webhook URL (per agent)
-                </p>
-                <div className="bg-brand-input/60 border border-brand-border-lt rounded-xl px-4 py-3 flex items-center gap-3">
-                  <code className="text-brand-gold-lt text-xs flex-1 break-all">
-                    {webhookBase}/{"{"}<span className="text-yellow-300">agentId</span>{"}"}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${webhookBase}/{agentId}`);
-                      showToast("Copied!");
-                    }}
-                    className="text-xs text-gray-400 hover:text-white border border-brand-border-lt px-3 py-1.5 rounded-lg transition"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p className="text-gray-500 text-xs mt-1.5">
-                  Replace <code className="text-yellow-300">{"{agentId}"}</code> with the agent ID shown on the Deploy page.
+              <div className="bg-brand-input/60 border border-brand-border-lt rounded-xl px-4 py-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Per-Agent Location IDs</p>
+                <p className="text-gray-300 text-sm">
+                  Each agent has its own GHL Location ID (sub-account). Set it inside the agent's <strong>Deploy tab</strong>.
                 </p>
               </div>
 
@@ -293,16 +270,20 @@ export default function SettingsPage() {
               </div>
             </div>
           ) : (
-            /* ── Connect form ─────────────────────────────────────────────── */
+            /* ── Connect form — API token only ───────────────────────────── */
             <form onSubmit={connectGhl} className="space-y-4">
+              <div className="bg-brand-input/40 border border-brand-border-lt rounded-xl px-4 py-3 text-sm text-gray-400">
+                <strong className="text-gray-300">Agency token only</strong> — one token for all clients.
+                Each client's Location ID is set per-agent in the Deploy tab.
+              </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1.5">GHL API Token</label>
+                <label className="block text-sm text-gray-300 mb-1.5">GHL Agency API Token</label>
                 <div className="relative">
                   <input
                     type={showGhlToken ? "text" : "password"}
                     value={ghlToken}
                     onChange={(e) => setGhlToken(e.target.value)}
-                    placeholder="eyJhbGci..."
+                    placeholder="pit-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                     className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 pr-24 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold transition"
                   />
                   <button
@@ -314,28 +295,14 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <p className="text-gray-500 text-xs mt-1.5">
-                  Found in GHL → Settings → Integrations → API Keys
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-300 mb-1.5">GHL Location ID</label>
-                <input
-                  type="text"
-                  value={ghlLocationId}
-                  onChange={(e) => setGhlLocationId(e.target.value)}
-                  placeholder="aBcDeFgHiJkL..."
-                  className="w-full bg-brand-input border border-brand-border-lt rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold transition"
-                />
-                <p className="text-gray-500 text-xs mt-1.5">
-                  Found in GHL → Settings → Business Profile → Location ID
+                  Found in GHL → Settings → API Keys → Create Private Integration
                 </p>
               </div>
 
               <button
                 type="submit"
-                disabled={ghlConnecting || !ghlToken.trim() || !ghlLocationId.trim()}
-                className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
+                disabled={ghlConnecting || !ghlToken.trim()}
+                className="bg-brand-gold hover:bg-brand-gold-lt disabled:opacity-50 disabled:cursor-not-allowed text-[#18110C] font-bold px-6 py-2.5 rounded-xl transition-colors"
               >
                 {ghlConnecting ? "Connecting..." : "Connect GHL"}
               </button>

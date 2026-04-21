@@ -25,58 +25,47 @@ export async function GET(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) return unauthorized();
 
-  const hasGhl = !!(user as any).ghlApiToken && !!(user as any).ghlLocationId;
-  return Response.json({
-    connected: hasGhl,
-    locationId: hasGhl ? (user as any).ghlLocationId : null,
-  });
+  const hasGhl = !!(user as any).ghlApiToken;
+  return Response.json({ connected: hasGhl });
 }
 
-// ─── PUT — save & validate GHL credentials ───────────────────────────────────
+// ─── PUT — save & validate GHL API token only ────────────────────────────────
 
 export async function PUT(req: NextRequest) {
   const session = getSessionUser(req);
   if (!session) return unauthorized();
 
-  const { ghlApiToken, ghlLocationId } = await req.json();
+  const { ghlApiToken } = await req.json();
 
-  if (!ghlApiToken?.trim() || !ghlLocationId?.trim()) {
-    return Response.json({ error: "API token and Location ID are required" }, { status: 400 });
+  if (!ghlApiToken?.trim()) {
+    return Response.json({ error: "API token is required" }, { status: 400 });
   }
 
+  // Validate the token by calling GHL API
   try {
-    const testRes = await fetch(
-      `https://services.leadconnectorhq.com/locations/${ghlLocationId.trim()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${ghlApiToken.trim()}`,
-          Version: "2021-07-28",
-        },
-      }
-    );
+    const testRes = await fetch("https://services.leadconnectorhq.com/oauth/userinfo", {
+      headers: {
+        Authorization: `Bearer ${ghlApiToken.trim()}`,
+        Version: "2021-07-28",
+      },
+    });
 
     if (!testRes.ok) {
       return Response.json(
-        { error: "Invalid GHL credentials — could not connect to your account" },
+        { error: "Invalid GHL API token — could not authenticate" },
         { status: 400 }
       );
     }
 
-    const locationData = await testRes.json();
-    const locationName = locationData?.name ?? locationData?.location?.name ?? "Connected";
-
     await prisma.user.update({
       where: { id: session.userId },
-      data: {
-        ghlApiToken:   obfuscate(ghlApiToken.trim()),
-        ghlLocationId: ghlLocationId.trim(),
-      } as any,
+      data: { ghlApiToken: obfuscate(ghlApiToken.trim()) } as any,
     });
 
-    return Response.json({ connected: true, locationId: ghlLocationId.trim(), locationName });
+    return Response.json({ connected: true });
   } catch {
     return Response.json(
-      { error: "Failed to connect to GHL — check your API token and Location ID" },
+      { error: "Failed to connect to GHL — check your API token" },
       { status: 400 }
     );
   }
@@ -96,15 +85,11 @@ export async function DELETE(req: NextRequest) {
   return Response.json({ connected: false });
 }
 
-// ── Helper exported for use by webhook + reply sender routes ─────────────────
+// ── Helper: get decrypted GHL token for a user ───────────────────────────────
+// locationId is now sourced from the Agent model, not User.
 
-export async function getGhlToken(
-  userId: string
-): Promise<{ token: string; locationId: string } | null> {
+export async function getGhlToken(userId: string): Promise<string | null> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!(user as any)?.ghlApiToken || !(user as any)?.ghlLocationId) return null;
-  return {
-    token:      deobfuscate((user as any).ghlApiToken),
-    locationId: (user as any).ghlLocationId,
-  };
+  if (!(user as any)?.ghlApiToken) return null;
+  return deobfuscate((user as any).ghlApiToken);
 }

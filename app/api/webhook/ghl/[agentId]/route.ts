@@ -179,7 +179,8 @@ export async function POST(
       const ghlToken2 = (user2 as any)?.ghlApiToken;
       if (ghlToken2) {
         const { deobfuscate } = await import("@/app/api/settings/ghl/route");
-        await sendGhlReply(deobfuscate(ghlToken2), ghlConversationId, blockedReply);
+        const tok = deobfuscate(ghlToken2);
+        await sendGhlReply(tok, ghlConversationId, blockedReply);
       }
     }
     return Response.json({ ok: true, note: "Restricted topic — canned reply sent" });
@@ -226,7 +227,7 @@ export async function POST(
     },
   });
 
-  // Send reply back via GHL
+  // Send reply back via GHL using agent's locationId (per-client sub-account)
   if (ghlConversationId) {
     const user = await prisma.user.findUnique({ where: { id: agent.userId } });
     const ghlToken = (user as any)?.ghlApiToken;
@@ -237,6 +238,12 @@ export async function POST(
       const sent = await sendGhlReply(token, ghlConversationId, aiReply);
       if (!sent) console.warn("[webhook/ghl] Failed to send GHL reply");
     }
+  }
+
+  // Log which sub-account handled this message
+  const agentLocationId = (agent as any).ghlLocationId;
+  if (agentLocationId) {
+    console.log(`[webhook/ghl] Handled by location: ${agentLocationId}`);
   }
 
   return Response.json({ ok: true });

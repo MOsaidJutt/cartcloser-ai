@@ -57,6 +57,7 @@ model Agent {
   nextRefreshAt    DateTime?
   lastRefreshedAt  DateTime?
   // Phase 2 GHL fields
+  ghlLocationId    String?   // per-agent GHL sub-account Location ID
   ghlAgentId       String?
   ghlWorkflowId    String?
   ghlDeployed      Boolean   @default(false)

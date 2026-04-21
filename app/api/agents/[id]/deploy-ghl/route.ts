@@ -3,8 +3,6 @@ import { getSessionUser, unauthorized } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
-// ─── POST — deploy agent to GHL (generate webhook secret + mark deployed) ─────
-
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,16 +14,23 @@ export async function POST(
   const agent = await prisma.agent.findFirst({ where: { id, userId: session.userId } });
   if (!agent) return Response.json({ error: "Agent not found" }, { status: 404 });
 
-  // Check GHL is connected
+  // Check GHL API token is connected (user level)
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
-  if (!(user as any)?.ghlApiToken || !(user as any)?.ghlLocationId) {
+  if (!(user as any)?.ghlApiToken) {
     return Response.json(
       { error: "Connect your GHL account in Settings before deploying" },
       { status: 400 }
     );
   }
 
-  // Generate webhook secret (or reuse existing)
+  // Location ID must be set on the agent (per-client sub-account)
+  if (!(agent as any).ghlLocationId) {
+    return Response.json(
+      { error: "Set this agent's GHL Location ID in the Deploy tab before deploying" },
+      { status: 400 }
+    );
+  }
+
   const webhookSecret = (agent as any).ghlWebhookSecret ?? crypto.randomBytes(32).toString("hex");
 
   await prisma.agent.update({

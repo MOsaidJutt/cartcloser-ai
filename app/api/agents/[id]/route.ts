@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const body = await req.json();
     const { botName, openingMessage, couponCode, couponDiscount, tone, currency,
-            config, refreshInterval, refreshUnit } = body;
+            config, refreshInterval, refreshUnit, ghlLocationId } = body;
 
     // Serialise config to JSON string for storage
     let configStr: string | undefined;
@@ -105,6 +105,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         ...(tone           !== undefined && { tone }),
         ...(currency       !== undefined && { currency }),
         ...(configStr      !== undefined && { config: configStr }),
+        ...(ghlLocationId  !== undefined && { ghlLocationId: ghlLocationId || null }),
         ...refreshData,
         systemPrompt,
       },
