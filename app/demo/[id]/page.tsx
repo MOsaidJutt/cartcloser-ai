@@ -227,7 +227,7 @@ function LandingScreen({ agent, onStart }: { agent: AgentInfo; onStart: (name: s
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">{agent.storeName}</h1>
         <p className="text-brand-gold font-semibold text-sm mb-4">AI Cart Recovery Demo</p>
-        <div className="bg-brand-gold border border-brand-gold rounded-2xl px-5 py-3 mb-6 text-sm text-brand-gold font-medium">
+        <div className="bg-brand-gold rounded-2xl px-5 py-3 mb-6 text-sm text-[#18110C] font-semibold">
           70% of carts are abandoned — AI recovers them
         </div>
         <p className="text-gray-500 text-sm mb-6 leading-relaxed">
