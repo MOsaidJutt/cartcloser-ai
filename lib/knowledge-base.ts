@@ -41,10 +41,10 @@ function buildCatalogSection(data: ScrapedStore): string {
     );
 
     if (realVariants.length <= 1) {
-      lines.push(`- ${p.title}: $${p.price}${sale}${stock} | checkout: ${defaultCheckout}`);
+      lines.push(`- ${p.title}: $${p.price}${sale}${stock} | page: ${p.productUrl} | checkout: ${defaultCheckout}`);
     } else {
       // List every real variant with its own checkout URL and stock status
-      lines.push(`- ${p.title}: from $${p.price}${sale}${stock}`);
+      lines.push(`- ${p.title}: from $${p.price}${sale}${stock} | page: ${p.productUrl}`);
       for (const v of realVariants) {
         const co = baseUrl ? `${baseUrl}/cart/${v.id}:1` : defaultCheckout;
         const variantStock = v.available ? "" : " [OUT OF STOCK]";
@@ -66,7 +66,7 @@ function buildSaleCatalogSection(data: ScrapedStore): string {
   const lines = saleProducts.map((p) => {
     const firstVariant = p.variants[0];
     const co = firstVariant && baseUrl ? `${baseUrl}/cart/${firstVariant.id}:1` : (p.checkoutUrl ?? p.productUrl);
-    return `- ${p.title}: $${p.price} (was $${p.compareAtPrice}) | checkout: ${co}`;
+    return `- ${p.title}: $${p.price} (was $${p.compareAtPrice}) | page: ${p.productUrl} | checkout: ${co}`;
   });
 
   return `## CURRENT DEALS & PROMOTIONS\n${lines.join("\n")}`;
