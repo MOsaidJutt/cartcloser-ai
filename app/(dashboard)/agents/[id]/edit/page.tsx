@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,6 +47,152 @@ interface KBData {
   productCount: number;
   characterCount: number;
   sections: KBSection[];
+}
+
+// ─── RESCAN PROGRESS TYPES ────────────────────────────────────────────────────
+
+interface ScanItem {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "done" | "error";
+  detail?: string;
+}
+
+function makeScanChecklist(): ScanItem[] {
+  return [
+    { id: "products", label: "Fetching product catalog", status: "pending" },
+    { id: "sitemap",  label: "Reading sitemap & pages",  status: "pending" },
+    { id: "nav",      label: "Discovering navigation links", status: "pending" },
+    { id: "crawling", label: "Deep-crawling site content", status: "pending" },
+    { id: "ai",       label: "AI rebuilding knowledge base", status: "pending" },
+  ];
+}
+
+function sseStepToId(step: string): string {
+  if (step === "products") return "products";
+  if (step === "sitemap")  return "sitemap";
+  if (step === "nav")      return "nav";
+  if (["pages", "policies", "blog", "faq", "crawling"].includes(step)) return "crawling";
+  if (step === "ai")       return "ai";
+  return "";
+}
+
+function ScanCheckItem({ item }: { item: ScanItem }) {
+  return (
+    <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+      className="flex items-center gap-3 py-2.5">
+      <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center">
+        {item.status === "done" && (
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </motion.div>
+        )}
+        {item.status === "running" && <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />}
+        {item.status === "error"   && <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">✗</div>}
+        {item.status === "pending" && <div className="w-5 h-5 rounded-full border-2 border-brand-border-lt" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className={`text-sm font-medium ${
+          item.status === "done"    ? "text-white"
+          : item.status === "running" ? "text-brand-gold-lt"
+          : item.status === "error"   ? "text-red-400"
+          : "text-gray-500"}`}>
+          {item.label}
+        </span>
+        {item.detail && item.status !== "pending" && (
+          <p className="text-xs text-gray-500 mt-0.5 truncate">{item.detail}</p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function RescanOverlay({
+  checklist,
+  crawlProgress,
+  aiProgress,
+  onCancel,
+}: {
+  checklist: ScanItem[];
+  crawlProgress: { count: number; total: number; path: string } | null;
+  aiProgress: { count: number; total: number; label: string } | null;
+  onCancel: () => void;
+}) {
+  const doneCount = checklist.filter((i) => i.status === "done").length;
+  const pct = Math.round((doneCount / checklist.length) * 100);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        className="bg-brand-card border border-brand-border rounded-2xl p-8 max-w-md w-full">
+
+        <h2 className="text-xl font-bold mb-1">Rebuilding Knowledge Base</h2>
+        <p className="text-gray-400 text-sm mb-6">Deep-crawling the entire store — takes 60–120 seconds</p>
+
+        {/* Progress bar */}
+        <div className="mb-6">
+          <div className="flex justify-between text-xs text-gray-500 mb-2">
+            <span>Progress</span><span>{pct}%</span>
+          </div>
+          <div className="h-1.5 bg-brand-input rounded-full overflow-hidden">
+            <motion.div className="h-full bg-brand-gold-lt rounded-full"
+              animate={{ width: `${pct}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
+          </div>
+        </div>
+
+        {/* Checklist */}
+        <div className="bg-brand-bg border border-brand-border rounded-xl px-5 py-1 divide-y divide-gray-800/50 mb-4">
+          {checklist.map((item) => <ScanCheckItem key={item.id} item={item} />)}
+        </div>
+
+        {/* Crawl sub-progress */}
+        <AnimatePresence>
+          {crawlProgress && (
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              className="bg-brand-bg/50 border border-brand-border rounded-xl px-4 py-3 mb-3">
+              <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                <span className="font-mono truncate max-w-[200px]">{crawlProgress.path}</span>
+                <span>{crawlProgress.count}/{crawlProgress.total} pages</span>
+              </div>
+              <div className="h-1 bg-brand-input rounded-full overflow-hidden">
+                <motion.div className="h-full bg-purple-500 rounded-full"
+                  animate={{ width: crawlProgress.total > 0 ? `${Math.round((crawlProgress.count / crawlProgress.total) * 100)}%` : "0%" }}
+                  transition={{ duration: 0.3 }} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* AI sub-progress */}
+        <AnimatePresence>
+          {aiProgress && (
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              className="bg-brand-bg/50 border border-brand-border rounded-xl px-4 py-3 mb-3">
+              <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                <span className="truncate max-w-[220px]">{aiProgress.label}</span>
+                <span className="text-brand-gold font-mono">{aiProgress.count}/{aiProgress.total}</span>
+              </div>
+              <div className="h-1 bg-brand-input rounded-full overflow-hidden">
+                <motion.div className="h-full bg-brand-gold-lt rounded-full"
+                  animate={{ width: aiProgress.total > 0 ? `${Math.round((aiProgress.count / aiProgress.total) * 100)}%` : "0%" }}
+                  transition={{ duration: 0.4 }} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button onClick={onCancel}
+          className="w-full mt-2 text-gray-500 hover:text-red-400 text-sm transition-colors py-2">
+          Cancel
+        </button>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 // ─── KB VIEWER ────────────────────────────────────────────────────────────────
@@ -688,6 +834,10 @@ export default function EditAgentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rescanning, setRescanning] = useState(false);
+  const [scanChecklist, setScanChecklist] = useState<ScanItem[]>(makeScanChecklist());
+  const [scanCrawlProgress, setScanCrawlProgress] = useState<{ count: number; total: number; path: string } | null>(null);
+  const [scanAiProgress, setScanAiProgress] = useState<{ count: number; total: number; label: string } | null>(null);
+  const scanAbortRef = useRef<AbortController | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState("");
@@ -760,13 +910,105 @@ export default function EditAgentPage() {
 
   async function handleRescan() {
     setRescanning(true);
-    const res = await fetch(`/api/agents/${id}/scrape`, { method: "POST" });
+    setScanChecklist(makeScanChecklist());
+    setScanCrawlProgress(null);
+    setScanAiProgress(null);
+
+    const controller = new AbortController();
+    scanAbortRef.current = controller;
+
+    const updateItem = (itemId: string, patch: Partial<ScanItem>) => {
+      setScanChecklist((prev) => prev.map((i) => (i.id === itemId ? { ...i, ...patch } : i)));
+    };
+
+    try {
+      const res = await fetch(`/api/agents/${id}/scrape`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ useAI: true }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        setRescanning(false);
+        showToast("Re-scan failed");
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
+          let event: any;
+          try { event = JSON.parse(raw); } catch { continue; }
+
+          const { step: evStep, label, done: evDone, count, total, error: evError } = event;
+
+          if (evStep === "done" && event.agent) {
+            setScanChecklist((prev) => prev.map((i) => ({ ...i, status: "done" })));
+            setAgent((prev) => prev ? { ...prev, productCount: event.agent.productCount, storeName: event.agent.storeName, status: "ready" } : prev);
+            setTimeout(() => {
+              setRescanning(false);
+              showToast(`Knowledge base rebuilt — ${event.agent.productCount} products`);
+            }, 700);
+            continue;
+          }
+
+          if (evError || evStep === "error") {
+            setRescanning(false);
+            showToast(label ?? "Re-scan failed");
+            continue;
+          }
+
+          const checkId = sseStepToId(evStep);
+          if (!checkId) continue;
+
+          if (evStep === "crawling" && count !== undefined && total !== undefined) {
+            const path = label?.replace("Scraping ", "") ?? "";
+            setScanCrawlProgress({ count, total, path });
+            updateItem("crawling", { status: "running", label: "Deep-crawling site content", detail: `${count}/${total} pages` });
+          } else if (evStep === "ai" && count !== undefined && total !== undefined && !evDone) {
+            setScanAiProgress({ count, total, label: label ?? `Analyzing batch ${count} of ${total}...` });
+            updateItem("ai", { status: "running", label: "AI rebuilding knowledge base", detail: `Batch ${count}/${total}` });
+          } else if (evDone) {
+            updateItem(checkId, { status: "done", detail: label });
+            if (checkId === "crawling") setScanCrawlProgress(null);
+            if (checkId === "ai") setScanAiProgress(null);
+            // Auto-start next pending item
+            setScanChecklist((prev) => {
+              const next = prev.find((i) => i.status === "pending");
+              if (!next) return prev;
+              return prev.map((i) => i.id === next.id ? { ...i, status: "running" } : i);
+            });
+          } else {
+            updateItem(checkId, { status: "running", detail: label });
+          }
+        }
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        setRescanning(false);
+        showToast("Re-scan failed");
+      }
+    }
+  }
+
+  function handleCancelRescan() {
+    scanAbortRef.current?.abort();
     setRescanning(false);
-    if (res.ok) {
-      const d = await res.json();
-      setAgent((prev) => prev ? { ...prev, productCount: d.productCount, status: "ready" } : prev);
-      showToast(`Store re-scanned — ${d.productCount} products`);
-    } else { showToast("Re-scan failed"); }
   }
 
   async function handleDelete() {
@@ -1109,6 +1351,18 @@ export default function EditAgentPage() {
 
         </AnimatePresence>
       </main>
+
+      {/* Rescan progress overlay */}
+      <AnimatePresence>
+        {rescanning && (
+          <RescanOverlay
+            checklist={scanChecklist}
+            crawlProgress={scanCrawlProgress}
+            aiProgress={scanAiProgress}
+            onCancel={handleCancelRescan}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Delete modal */}
       <AnimatePresence>
