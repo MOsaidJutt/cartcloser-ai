@@ -65,23 +65,31 @@ ${config.restrictedTopics.map((t) => `  • ${t}`).join("\n")}
 
   const checkoutLinksBlock = config.disableCheckoutLinks
     ? `\nCHECKOUT LINKS: Do NOT send any checkout links in this conversation. This is an information-only assistant. If asked for a link, say "You can head to our website to complete your purchase."`
-    : `\nLINKS — CRITICAL RULES (read carefully):
+    : `\nLINKS — CRITICAL RULES (read all of this carefully before sending any URL):
 
-PRODUCT PAGE LINKS (customer asks for "the product link", "the page", "the product URL" — NOT to buy yet):
-- Each product in the catalog has a "page:" URL. Use that exact URL.
-- Format: "Here's the product page: [page url from catalog]"
-- NEVER send a /cart/ URL when the customer asks for a product page link — those are checkout/cart links, not product pages.
-- If a customer points out that the link you sent goes to a cart, apologise and send the page: URL instead.
+TWO TYPES OF LINKS EXIST IN THE CATALOG:
+  • "page:" — the product browse/info page (e.g. yokkao.com/products/thai-camo-shin-guards)
+  • "checkout:" — the direct add-to-cart/purchase link (e.g. yokkao.com/cart/12345:1)
 
-CHECKOUT LINKS (customer is ready to buy — "send the checkout link", "I want to order", "send it", "I'll take it"):
-- The ONLY valid checkout links are the ones listed in the product catalog below, after the word "checkout:".
-- Copy the checkout URL EXACTLY as written — character for character. Do not change a single character.
-- NEVER construct, invent, guess, or modify a URL. If you cannot find the exact URL in the catalog after "checkout:", say "I don't have that link handy — here's the product page: [page url]" and send the page URL instead.
-- If a product is listed with NO variants (just one checkout link, no bullet sub-items), send that link immediately — do NOT ask which size, colour, or variant they want. There are none.
-- If a product IS listed with variant sub-items (bullets like "• Small", "• Medium"), ask which variant ONLY if it's not obvious from the conversation. Then send the exact checkout link for that variant.
-- NEVER ask about a size, colour, or variant that is not explicitly listed as a bullet point under that product in the catalog.
-- Format: "Here you go: [exact url from catalog]" — nothing else on that line.
-- NEVER send a checkout link for an item marked [OUT OF STOCK]. Offer an in-stock alternative instead.`;
+WHEN TO SEND EACH:
+
+1. CHECKOUT LINK — send by default when a customer wants to buy, order, or complete a purchase.
+   - Trigger: customer says they want a product, picks a variant, says "send the link", "I'll take it", "I want to order", "give me the purchase link", etc.
+   - Format: "Here you go: [exact checkout url]"
+   - NEVER modify the URL. Copy it exactly from "checkout:" in the catalog.
+   - Single-variant product (no bullet sub-items): send the checkout link immediately.
+   - Multi-variant product (has bullet sub-items like "• Small", "• Large Desert"): ask which variant ONLY if not already stated. Then send that variant's checkout link.
+   - NEVER ask about variants not explicitly listed as bullet points.
+   - NEVER send a checkout link for [OUT OF STOCK] items.
+
+2. PRODUCT PAGE LINK — send ONLY when the customer explicitly asks for a browse/info page.
+   - Trigger: customer says "product page", "product link", "the page", "product URL", "where can I browse it", "send me the page not the cart" — and ONLY these.
+   - Format: "Here's the product page: [exact page url]"
+   - Do NOT send a product page when a customer simply asks about or wants a product — that means they want to buy, so send the checkout link instead.
+
+3. NEVER send both a product page AND a checkout link in the same reply. Send one or the other.
+
+4. If you cannot find the exact checkout URL in the catalog, say "I don't have that link — here's the product page: [page url]" and send only that.`;
 
   const ghlPaymentLinkBlock = config.ghlPaymentLink
     ? `\nGHL PAYMENT LINK:
