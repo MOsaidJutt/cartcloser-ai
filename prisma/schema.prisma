@@ -26,6 +26,7 @@ model User {
   planStatus           String    @default("free") // "free" | "trialing" | "active" | "past_due" | "canceled"
   planName             String    @default("free") // "free" | "starter" | "pro" | "agency"
   currentPeriodEnd     DateTime?
+  blocked              Boolean   @default(false)
   agents        Agent[]
   createdAt     DateTime @default(now())
 }
@@ -80,6 +81,7 @@ model Coupon {
   discountType  String   @default("percentage") // "percentage" | "fixed"
   discountValue String   // e.g. "10" (for 10% or $10)
   active        Boolean  @default(true)
+  usedCount     Int      @default(0)
   createdAt     DateTime @default(now())
 }
 
@@ -94,6 +96,9 @@ model Conversation {
   shopifyOrderId    String?
   shopifyOrderTotal String?   // e.g. "129.99"
   convertedAt       DateTime?
+  // Checkout link click tracking
+  checkoutClickedAt DateTime?
+  lastCheckoutUrl   String?
   messages       Message[]
   createdAt      DateTime  @default(now())
 }

@@ -92,7 +92,7 @@ function TypingIndicator({ avatarInitial }: { avatarInitial: string }) {
 // ─── LINK RENDERER ───────────────────────────────────────────────────────────
 // Turns plain-text URLs inside a message into tappable anchor tags.
 
-function renderWithLinks(text: string, isUser: boolean, onLinkClick?: () => void) {
+function renderWithLinks(text: string, isUser: boolean, onLinkClick?: (url: string) => void) {
   const urlRegex = /https?:\/\/[^\s]+/g;
   const parts: React.ReactNode[] = [];
   let last = 0;
@@ -114,7 +114,7 @@ function renderWithLinks(text: string, isUser: boolean, onLinkClick?: () => void
         }`}
         onClick={(e) => {
           e.stopPropagation();
-          if (!isUser && onLinkClick) onLinkClick();
+          if (!isUser && onLinkClick) onLinkClick(url);
         }}
       >
         {url}
@@ -129,7 +129,7 @@ function renderWithLinks(text: string, isUser: boolean, onLinkClick?: () => void
 
 // ─── MESSAGE BUBBLE ──────────────────────────────────────────────────────────
 
-function MessageBubble({ message, avatarInitial, onLinkClick }: { message: Message; avatarInitial: string; onLinkClick?: () => void }) {
+function MessageBubble({ message, avatarInitial, onLinkClick }: { message: Message; avatarInitial: string; onLinkClick?: (url: string) => void }) {
   const isUser = message.role === "user";
 
   return (
@@ -275,6 +275,7 @@ function LandingScreen({ agent, onStart }: { agent: AgentInfo; onStart: (name: s
 
 function ChatScreen({
   agent,
+  conversationId,
   messages,
   onSend,
   isTyping,
@@ -282,15 +283,20 @@ function ChatScreen({
   responseTimer,
 }: {
   agent: AgentInfo;
+  conversationId: string;
   messages: Message[];
   onSend: (text: string) => void;
   isTyping: boolean;
   streamingContent: string;
   responseTimer: number;
 }) {
-  const trackConversion = useCallback(() => {
-    fetch(`/api/track/${agent.id}/conversion`, { method: "POST" }).catch(() => {});
-  }, [agent.id]);
+  const trackConversion = useCallback((url: string) => {
+    fetch(`/api/track/${agent.id}/conversion`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId, checkoutUrl: url }),
+    }).catch(() => {});
+  }, [agent.id, conversationId]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -726,6 +732,7 @@ export default function DemoPage() {
         >
           <ChatScreen
             agent={agent}
+            conversationId={conversationId}
             messages={messages}
             onSend={handleSend}
             isTyping={isTyping}

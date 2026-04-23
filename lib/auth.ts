@@ -57,6 +57,21 @@ export function getSessionUser(req: NextRequest): JWTPayload | null {
 }
 
 /**
+ * Same as getSessionUser but also checks DB for blocked status.
+ * Use in sensitive routes where blocking must take effect immediately.
+ */
+export async function getSessionUserChecked(req: NextRequest): Promise<JWTPayload | null> {
+  const payload = getSessionUser(req);
+  if (!payload) return null;
+
+  const { prisma } = await import("@/lib/prisma");
+  const user = await prisma.user.findUnique({ where: { id: payload.userId }, select: { blocked: true } });
+  if (!user || user.blocked) return null;
+
+  return payload;
+}
+
+/**
  * Returns an unauthorized JSON response.
  */
 export function unauthorized() {
