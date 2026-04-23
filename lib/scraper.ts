@@ -1,6 +1,14 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 
+const BROWSER_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/html, */*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Cache-Control": "no-cache",
+};
+
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
 export interface ScrapedProduct {
@@ -57,7 +65,7 @@ async function scrapeProducts(baseUrl: string): Promise<ScrapedProduct[]> {
 
   while (true) {
     const url = `${baseUrl}/products.json?limit=${limit}&page=${page}`;
-    const res = await axios.get(url, { timeout: 15000 });
+    const res = await axios.get(url, { timeout: 15000, headers: BROWSER_HEADERS });
     const batch: any[] = res.data?.products ?? [];
 
     if (batch.length === 0) break;
@@ -107,7 +115,7 @@ async function scrapeProducts(baseUrl: string): Promise<ScrapedProduct[]> {
 
 async function scrapePolicy(baseUrl: string, slug: string): Promise<string | null> {
   try {
-    const res = await axios.get(`${baseUrl}/policies/${slug}`, { timeout: 10000 });
+    const res = await axios.get(`${baseUrl}/policies/${slug}`, { timeout: 10000, headers: BROWSER_HEADERS });
     const $ = cheerio.load(res.data);
     // Shopify policy pages usually have content in .policy or article
     const text =
@@ -136,7 +144,7 @@ async function scrapeStoreMeta(
   baseUrl: string
 ): Promise<{ storeName: string; storeDescription: string | null }> {
   try {
-    const res = await axios.get(`${baseUrl}/meta.json`, { timeout: 10000 });
+    const res = await axios.get(`${baseUrl}/meta.json`, { timeout: 10000, headers: BROWSER_HEADERS });
     return {
       storeName: res.data?.name ?? new URL(baseUrl).hostname,
       storeDescription: res.data?.description ?? null,
@@ -144,7 +152,7 @@ async function scrapeStoreMeta(
   } catch {
     // Fall back to parsing <title> from home page
     try {
-      const res = await axios.get(baseUrl, { timeout: 10000 });
+      const res = await axios.get(baseUrl, { timeout: 10000, headers: BROWSER_HEADERS });
       const $ = cheerio.load(res.data);
       const title = $("title").text().split("|")[0].trim();
       return { storeName: title || new URL(baseUrl).hostname, storeDescription: null };
@@ -166,7 +174,7 @@ export async function scrapeShopifyStore(rawUrl: string): Promise<ScrapedStore> 
   // Validate it's a Shopify store by hitting products.json
   let firstPageProducts: any[];
   try {
-    const res = await axios.get(`${baseUrl}/products.json?limit=1`, { timeout: 15000 });
+    const res = await axios.get(`${baseUrl}/products.json?limit=1`, { timeout: 15000, headers: BROWSER_HEADERS });
     firstPageProducts = res.data?.products;
     if (!Array.isArray(firstPageProducts)) throw new Error("Not a Shopify store");
   } catch (err: any) {
@@ -199,12 +207,12 @@ export async function scrapeShopifyStore(rawUrl: string): Promise<ScrapedStore> 
  */
 export async function quickProductCount(rawUrl: string): Promise<number> {
   const baseUrl = normalizeUrl(rawUrl);
-  const res = await axios.get(`${baseUrl}/products.json?limit=1`, { timeout: 10000 });
+  const res = await axios.get(`${baseUrl}/products.json?limit=1`, { timeout: 10000, headers: BROWSER_HEADERS });
   // Shopify doesn't return total in products.json easily, so fetch page 1 to check existence
   // Return -1 if not accessible, else we'll do a full count call
   const products: any[] = res.data?.products ?? [];
   if (!Array.isArray(products)) return 0;
   // Get a rough count by checking how many we get with limit=250
-  const res2 = await axios.get(`${baseUrl}/products.json?limit=250`, { timeout: 15000 });
+  const res2 = await axios.get(`${baseUrl}/products.json?limit=250`, { timeout: 15000, headers: BROWSER_HEADERS });
   return (res2.data?.products ?? []).length;
 }
