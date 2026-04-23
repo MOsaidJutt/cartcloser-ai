@@ -17,7 +17,8 @@ jobs:
           script: |
             cd /var/www/sms2cart
             git pull origin main
-            npm ci --omit=dev
+            npm ci
+            npx prisma generate
             npm run build
             pm2 restart sms2cart
             echo "Deploy complete"
