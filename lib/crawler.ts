@@ -16,6 +16,8 @@ export interface CrawlProgress {
   count?: number;
   total?: number;
   done?: boolean;
+  batchDone?: boolean;
+  status?: "preparing" | "waiting" | "received" | "done" | "skipped";
 }
 
 export type ProgressCallback = (p: CrawlProgress) => void;

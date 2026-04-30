@@ -184,12 +184,13 @@ async function runQualitativeAI(
     const tokens = estimateTokens(prompt);
     console.log(`[knowledge-base] Chunk ${i + 1}/${chunks.length}: ~${tokens} tokens`);
 
-    // Emit BEFORE the API call so UI shows the batch starting
+    // 1. Preparing
     onProgress?.({
       step: "ai",
-      label: `Analyzing batch ${i + 1} of ${chunks.length}... (waiting for AI)`,
+      label: `Batch ${i + 1} of ${chunks.length} — preparing ${chunk.length} pages...`,
       count: i + 1,
       total: chunks.length,
+      status: "preparing",
     });
 
     // For the first chunk, generate full structured sections.
@@ -198,6 +199,15 @@ async function runQualitativeAI(
 
 ADDITIONAL PAGES:
 ${crawledContext}`;
+
+    // 2. Sending to OpenAI
+    onProgress?.({
+      step: "ai",
+      label: `Batch ${i + 1} of ${chunks.length} — request sent to OpenAI, waiting for response...`,
+      count: i + 1,
+      total: chunks.length,
+      status: "waiting",
+    });
 
     try {
       const res = await client.chat.completions.create(
@@ -210,15 +220,25 @@ ${crawledContext}`;
         { signal: AbortSignal.timeout(PER_CHUNK_TIMEOUT_MS) }
       );
 
+      // 3. Response received
+      onProgress?.({
+        step: "ai",
+        label: `Batch ${i + 1} of ${chunks.length} — response received, processing...`,
+        count: i + 1,
+        total: chunks.length,
+        status: "received",
+      });
+
       const content = res.choices[0]?.message?.content ?? "";
       if (content.trim()) chunkResults.push(content);
 
-      // Emit AFTER the API call so UI confirms batch is done
+      // 4. Batch done
       onProgress?.({
         step: "ai",
         label: `Batch ${i + 1} of ${chunks.length} complete`,
         count: i + 1,
         total: chunks.length,
+        status: "done",
         batchDone: true,
       });
     } catch (err: any) {
@@ -227,9 +247,10 @@ ${crawledContext}`;
       console.warn(`[knowledge-base] Chunk ${i + 1} skipped (${err.message ?? "timeout"})`);
       onProgress?.({
         step: "ai",
-        label: `Batch ${i + 1} skipped (slow response), continuing...`,
+        label: `Batch ${i + 1} timed out — skipping and continuing...`,
         count: i + 1,
         total: chunks.length,
+        status: "skipped",
       });
     }
   }

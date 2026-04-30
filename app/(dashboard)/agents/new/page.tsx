@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -200,6 +200,93 @@ function StepUrl({ onNext }: { onNext: (url: string, useAI: boolean) => void }) 
 
 // ─── STEP 2: Scanning with Animated Checklist ─────────────────────────────────
 
+function AiProgressBox({ aiProgress }: {
+  aiProgress: { count: number; total: number; label: string; status?: string } | null;
+}) {
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const statusKey = aiProgress ? `${aiProgress.count}-${aiProgress.status}` : null;
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setElapsed(0);
+    if (aiProgress && aiProgress.status === "waiting") {
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusKey]);
+
+  if (!aiProgress) return null;
+
+  const { count, total, status } = aiProgress;
+  const pct = Math.round((count / total) * 100);
+
+  const statusIcon = () => {
+    if (status === "preparing") return <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse" />;
+    if (status === "waiting") return <div className="w-3 h-3 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />;
+    if (status === "received") return <div className="w-3 h-3 rounded-full bg-purple-400 animate-pulse" />;
+    if (status === "done") return <span className="text-green-400 text-sm">✓</span>;
+    if (status === "skipped") return <span className="text-yellow-500 text-sm">⚠</span>;
+    return <div className="w-3 h-3 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />;
+  };
+
+  const statusText = () => {
+    if (status === "preparing") return `Preparing ${Math.floor(15)} pages for AI analysis...`;
+    if (status === "waiting") return `Request sent — waiting for OpenAI response... ${elapsed}s`;
+    if (status === "received") return "Response received — processing output...";
+    if (status === "done") return `Batch ${count} complete ✓`;
+    if (status === "skipped") return `Batch ${count} timed out — skipped`;
+    return aiProgress.label;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      className="bg-brand-card/50 border border-brand-border rounded-xl px-4 py-4 mb-3 space-y-3"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-brand-gold">AI Analysis</span>
+        <span className="text-xs text-gray-500 font-mono">{count}/{total} batches</span>
+      </div>
+
+      {/* Batch progress bar */}
+      <div>
+        <div className="flex justify-between text-xs text-gray-600 mb-1">
+          <span>Batch progress</span>
+          <span>{pct}%</span>
+        </div>
+        <div className="h-1.5 bg-brand-input rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-brand-gold-lt rounded-full"
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
+      </div>
+
+      {/* Current status line */}
+      <div className="flex items-center gap-2 bg-brand-input rounded-lg px-3 py-2">
+        <div className="flex-shrink-0">{statusIcon()}</div>
+        <span className="text-xs text-gray-300 flex-1">{statusText()}</span>
+        {status === "waiting" && elapsed > 0 && (
+          <span className="text-xs font-mono text-gray-500 flex-shrink-0">{elapsed}s</span>
+        )}
+      </div>
+
+      {/* Tip for long waits */}
+      {status === "waiting" && elapsed >= 15 && (
+        <p className="text-xs text-gray-600 text-center">
+          OpenAI can take 30–60s per batch for large stores — hang tight
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
 function StepScanning({
   checklist,
   crawlProgress,
@@ -208,7 +295,7 @@ function StepScanning({
 }: {
   checklist: ChecklistItem[];
   crawlProgress: { count: number; total: number; path: string } | null;
-  aiProgress: { count: number; total: number; label: string } | null;
+  aiProgress: { count: number; total: number; label: string; status?: string } | null;
   onAbort: () => void;
 }) {
   const doneCount = checklist.filter((i) => i.status === "done").length;
@@ -276,30 +363,7 @@ function StepScanning({
 
       {/* AI chunk progress sub-detail */}
       <AnimatePresence>
-        {aiProgress && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="bg-brand-card/50 border border-brand-border rounded-xl px-4 py-3 mb-3"
-          >
-            <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-              <span className="truncate max-w-[220px]">{aiProgress.label}</span>
-              <span className="text-brand-gold font-mono">{aiProgress.count}/{aiProgress.total}</span>
-            </div>
-            <div className="h-1 bg-brand-input rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-brand-gold-lt rounded-full"
-                animate={{
-                  width: aiProgress.total > 0
-                    ? `${Math.round((aiProgress.count / aiProgress.total) * 100)}%`
-                    : "0%",
-                }}
-                transition={{ duration: 0.4 }}
-              />
-            </div>
-          </motion.div>
-        )}
+        <AiProgressBox aiProgress={aiProgress} />
       </AnimatePresence>
 
       <div className="mb-3" />
@@ -573,6 +637,7 @@ export default function NewAgentPage() {
     count: number;
     total: number;
     label: string;
+    status?: string;
   } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -631,7 +696,7 @@ export default function NewAgentPage() {
           let event: any;
           try { event = JSON.parse(raw); } catch { continue; }
 
-          const { step: evStep, label, done: evDone, count, total, error: evError, batchDone } = event;
+          const { step: evStep, label, done: evDone, count, total, error: evError, batchDone, status } = event;
 
           if (evStep === "done" && event.agent) {
             // Agent is fully built
@@ -670,15 +735,18 @@ export default function NewAgentPage() {
               detail: `${count}/${total} pages`,
             });
           } else if (evStep === "ai" && count !== undefined && total !== undefined && !evDone) {
-            // Show AI chunk progress — distinguish "waiting" vs "complete" batches
-            const progressLabel = batchDone
+            setAiProgress({ count, total, label: label ?? "", status });
+            const detail = status === "done"
               ? `Batch ${count}/${total} done ✓`
-              : `Batch ${count}/${total} — waiting for AI response...`;
-            setAiProgress({ count, total, label: label ?? progressLabel });
+              : status === "waiting"
+              ? `Batch ${count}/${total} — waiting for OpenAI...`
+              : status === "received"
+              ? `Batch ${count}/${total} — processing response...`
+              : `Batch ${count}/${total}`;
             updateChecklist("ai", {
               status: "running",
               label: "AI analyzing store knowledge",
-              detail: progressLabel,
+              detail,
             });
           } else if (evDone) {
             updateChecklist(checkId, { status: "done", detail: label });
