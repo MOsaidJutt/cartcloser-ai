@@ -184,10 +184,10 @@ async function runQualitativeAI(
     const tokens = estimateTokens(prompt);
     console.log(`[knowledge-base] Chunk ${i + 1}/${chunks.length}: ~${tokens} tokens`);
 
-    // Emit per-chunk progress to UI
+    // Emit BEFORE the API call so UI shows the batch starting
     onProgress?.({
       step: "ai",
-      label: `Analyzing batch ${i + 1} of ${chunks.length}...`,
+      label: `Analyzing batch ${i + 1} of ${chunks.length}... (waiting for AI)`,
       count: i + 1,
       total: chunks.length,
     });
@@ -212,10 +212,25 @@ ${crawledContext}`;
 
       const content = res.choices[0]?.message?.content ?? "";
       if (content.trim()) chunkResults.push(content);
+
+      // Emit AFTER the API call so UI confirms batch is done
+      onProgress?.({
+        step: "ai",
+        label: `Batch ${i + 1} of ${chunks.length} complete`,
+        count: i + 1,
+        total: chunks.length,
+        batchDone: true,
+      });
     } catch (err: any) {
       // Timeout or API error on a non-critical chunk — skip it and continue
       if (i === 0) throw err; // First chunk is essential — propagate error
       console.warn(`[knowledge-base] Chunk ${i + 1} skipped (${err.message ?? "timeout"})`);
+      onProgress?.({
+        step: "ai",
+        label: `Batch ${i + 1} skipped (slow response), continuing...`,
+        count: i + 1,
+        total: chunks.length,
+      });
     }
   }
 

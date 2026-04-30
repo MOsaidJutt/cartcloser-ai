@@ -101,6 +101,11 @@ export async function POST(req: NextRequest) {
         }
       };
 
+      // Send a comment-line keepalive every 20s so proxies/browsers don't close idle SSE connections
+      const keepAlive = setInterval(() => {
+        try { controller.enqueue(`: keepalive\n\n`); } catch {}
+      }, 20000);
+
       try {
         // Step: Scraping products
         send({ step: "products", label: "Fetching product catalog..." });
@@ -176,6 +181,7 @@ export async function POST(req: NextRequest) {
 
         send({ step: "error", label: err.message ?? "Something went wrong", error: true });
       } finally {
+        clearInterval(keepAlive);
         controller.close();
       }
     },

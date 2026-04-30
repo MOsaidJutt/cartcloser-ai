@@ -631,7 +631,7 @@ export default function NewAgentPage() {
           let event: any;
           try { event = JSON.parse(raw); } catch { continue; }
 
-          const { step: evStep, label, done: evDone, count, total, error: evError } = event;
+          const { step: evStep, label, done: evDone, count, total, error: evError, batchDone } = event;
 
           if (evStep === "done" && event.agent) {
             // Agent is fully built
@@ -670,12 +670,15 @@ export default function NewAgentPage() {
               detail: `${count}/${total} pages`,
             });
           } else if (evStep === "ai" && count !== undefined && total !== undefined && !evDone) {
-            // Show AI chunk progress
-            setAiProgress({ count, total, label: label ?? `Analyzing batch ${count} of ${total}...` });
+            // Show AI chunk progress — distinguish "waiting" vs "complete" batches
+            const progressLabel = batchDone
+              ? `Batch ${count}/${total} done ✓`
+              : `Batch ${count}/${total} — waiting for AI response...`;
+            setAiProgress({ count, total, label: label ?? progressLabel });
             updateChecklist("ai", {
               status: "running",
               label: "AI analyzing store knowledge",
-              detail: `Batch ${count}/${total}`,
+              detail: progressLabel,
             });
           } else if (evDone) {
             updateChecklist(checkId, { status: "done", detail: label });
