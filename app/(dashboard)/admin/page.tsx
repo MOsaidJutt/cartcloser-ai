@@ -1,9 +1,103 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+
+// ─── HIDDEN TERMINAL ──────────────────────────────────────────────────────────
+
+function TerminalPanel({ onClose }: { onClose: () => void }) {
+  const [lines, setLines] = useState<string[]>(["[terminal] Connecting to server logs..."]);
+  const [connected, setConnected] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function connect() {
+      try {
+        const res = await fetch("/api/admin/logs");
+        if (!res.ok || !res.body) {
+          setLines((p) => [...p, `[error] Could not connect: ${res.status}`]);
+          return;
+        }
+        setConnected(true);
+        const reader = res.body.getReader();
+        readerRef.current = reader;
+        const dec = new TextDecoder();
+        let buf = "";
+
+        while (!cancelled) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const parts = buf.split("\n");
+          buf = parts.pop() ?? "";
+          for (const part of parts) {
+            if (!part.startsWith("data: ")) continue;
+            try {
+              const { line } = JSON.parse(part.slice(6));
+              if (line) setLines((p) => [...p.slice(-500), line]);
+            } catch {}
+          }
+        }
+      } catch (e: any) {
+        if (!cancelled) setLines((p) => [...p, `[error] ${e.message}`]);
+      }
+    }
+
+    connect();
+    return () => {
+      cancelled = true;
+      readerRef.current?.cancel().catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [lines]);
+
+  return (
+    <motion.div
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d1117] border-t border-green-500/30 shadow-2xl"
+      style={{ height: "40vh" }}
+    >
+      <div className="flex items-center justify-between px-4 py-2 border-b border-green-500/20">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-yellow-400"}`} />
+          <span className="text-xs font-mono text-green-400">SERVER LOGS — sms2cart</span>
+          <span className="text-xs text-gray-600 font-mono">{lines.length} lines</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setLines([])} className="text-xs text-gray-600 hover:text-gray-400 font-mono">clear</button>
+          <button onClick={onClose} className="text-xs text-gray-500 hover:text-red-400 font-mono">✕ close</button>
+        </div>
+      </div>
+      <div className="overflow-y-auto h-full pb-8 px-4 py-2 font-mono text-xs">
+        {lines.map((line, i) => (
+          <div key={i} className={`leading-5 ${
+            line.includes("[error]") || line.includes("Error") || line.includes("error")
+              ? "text-red-400"
+              : line.includes("[knowledge-base]") || line.includes("[agents")
+              ? "text-green-300"
+              : line.includes("warn") || line.includes("WARN")
+              ? "text-yellow-400"
+              : "text-gray-400"
+          }`}>
+            {line}
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+    </motion.div>
+  );
+}
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -698,6 +792,20 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [tab, setTab] = useState<Tab>("stats");
+  const [terminalOpen, setTerminalOpen] = useState(false);
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleTitleTap() {
+    tapCountRef.current += 1;
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (tapCountRef.current >= 5) {
+      tapCountRef.current = 0;
+      setTerminalOpen((o) => !o);
+      return;
+    }
+    tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 2000);
+  }
 
   const fetchUsers = useCallback(async () => {
     const res = await fetch("/api/admin/users");
@@ -726,7 +834,7 @@ export default function AdminPage() {
       <header className="border-b border-brand-border bg-brand-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">SMS2<span className="text-brand-gold">Cart</span></h1>
+            <h1 className="text-xl font-bold cursor-default select-none" onClick={handleTitleTap}>SMS2<span className="text-brand-gold">Cart</span></h1>
             <span className="text-xs bg-brand-gold/20 text-brand-gold border border-brand-gold/30 px-2 py-0.5 rounded-full font-semibold">ADMIN</span>
           </div>
           <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-brand-input">← Dashboard</Link>
@@ -772,6 +880,10 @@ export default function AdminPage() {
 
       <AnimatePresence>
         {toast && <Toast message={toast} onDone={() => setToast("")} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {terminalOpen && <TerminalPanel onClose={() => setTerminalOpen(false)} />}
       </AnimatePresence>
     </div>
   );

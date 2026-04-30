@@ -123,8 +123,8 @@ export async function POST(req: NextRequest) {
           send(progress);
         });
 
-        // Step: Building knowledge base / AI analysis
-        send({ step: "ai", label: "AI is analyzing store content..." });
+        // All AI batches done — now build the system prompt and save
+        send({ step: "ai", label: "All batches complete — building system prompt...", status: "received" });
 
         const botName = generateDefaultBotName(kb.storeName);
 
@@ -134,6 +134,8 @@ export async function POST(req: NextRequest) {
           storeUrl,
           knowledgeBase: kb.knowledgeBase,
         });
+
+        send({ step: "ai", label: "Saving agent to database...", status: "received" });
 
         // Save the completed agent
         const agent = await prisma.agent.update({
