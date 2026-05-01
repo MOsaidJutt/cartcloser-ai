@@ -101,14 +101,13 @@ export async function POST(req: NextRequest) {
         }
       };
 
-      // Send a comment-line keepalive every 20s so proxies/browsers don't close idle SSE connections
+      // Every 30s: keep SSE alive + ping Neon so it doesn't go back to sleep during long AI processing
       const keepAlive = setInterval(() => {
         try { controller.enqueue(`: keepalive\n\n`); } catch {}
-      }, 20000);
+        prisma.$queryRaw`SELECT 1`.catch(() => {});
+      }, 30000);
 
       try {
-        // Warm up the Neon DB connection early so it's ready when we save at the end
-        prisma.agent.findUnique({ where: { id: agentId }, select: { id: true } }).catch(() => {});
 
         // Step: Scraping products
         send({ step: "products", label: "Fetching product catalog..." });
@@ -156,7 +155,6 @@ export async function POST(req: NextRequest) {
         console.log(`[agents] System prompt: ${spSizeKB}KB`);
         send({ step: "ai", label: `Saving to database... (${spSizeKB}KB prompt, ${kbSizeKB}KB full KB)`, status: "received" });
 
-        // Save with retry — Neon serverless can cold-start and hang on first query
         const agentData = {
           storeName: kb.storeName,
           botName,
@@ -167,32 +165,13 @@ export async function POST(req: NextRequest) {
           status: "ready" as const,
         };
 
-        let agent;
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const dbStart = Date.now();
-          send({
-            step: "ai",
-            label: attempt === 1
-              ? `Saving to database... (${spSizeKB}KB)`
-              : `DB waking up — retry ${attempt}/3...`,
-            status: "received",
-          });
-          try {
-            agent = await Promise.race([
-              prisma.agent.update({ where: { id: agentId }, data: agentData }),
-              new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("DB timeout — Neon cold start")), 40_000)
-              ),
-            ]);
-            console.log(`[agents] DB save took ${Date.now() - dbStart}ms (attempt ${attempt})`);
-            break;
-          } catch (err: any) {
-            console.warn(`[agents] DB save attempt ${attempt} failed: ${err.message}`);
-            if (attempt === 3) throw new Error("Database save failed after 3 attempts — please try again");
-            await new Promise((r) => setTimeout(r, 3000)); // wait 3s before retry
-          }
-        }
-        if (!agent) throw new Error("Database save failed");
+        const dbStart = Date.now();
+        // Use Prisma $transaction with a 60s timeout — properly cancels on timeout (no leaked connections)
+        const agent = await prisma.$transaction(
+          (tx) => tx.agent.update({ where: { id: agentId }, data: agentData }),
+          { timeout: 60_000 }
+        );
+        console.log(`[agents] DB save took ${Date.now() - dbStart}ms`);
 
         send({
           step: "ai",
