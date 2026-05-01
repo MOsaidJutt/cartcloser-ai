@@ -124,18 +124,35 @@ export async function POST(req: NextRequest) {
         });
 
         // All AI batches done — now build the system prompt and save
-        send({ step: "ai", label: "All batches complete — building system prompt...", status: "received" });
+        const kbSizeKB = Math.round(kb.knowledgeBase.length / 1024);
+        console.log(`[agents] KB size: ${kbSizeKB}KB, pages: ${kb.crawledPageCount}`);
+        send({ step: "ai", label: `Building system prompt... (KB size: ${kbSizeKB}KB)`, status: "received" });
 
         const botName = generateDefaultBotName(kb.storeName);
+
+        // Cap knowledge base at 400KB to prevent DB timeouts on very large stores
+        const MAX_KB_CHARS = 400_000;
+        const knowledgeBase = kb.knowledgeBase.length > MAX_KB_CHARS
+          ? kb.knowledgeBase.slice(0, MAX_KB_CHARS) + "\n\n[Knowledge base truncated to fit limits]"
+          : kb.knowledgeBase;
+
+        if (kb.knowledgeBase.length > MAX_KB_CHARS) {
+          console.warn(`[agents] KB truncated from ${kbSizeKB}KB to 400KB`);
+          send({ step: "ai", label: `KB was ${kbSizeKB}KB — trimmed to 400KB for performance`, status: "received" });
+        }
 
         const systemPrompt = buildSystemPrompt({
           botName,
           storeName: kb.storeName,
           storeUrl,
-          knowledgeBase: kb.knowledgeBase,
+          knowledgeBase,
         });
 
-        send({ step: "ai", label: "Saving agent to database...", status: "received" });
+        const spSizeKB = Math.round(systemPrompt.length / 1024);
+        console.log(`[agents] System prompt size: ${spSizeKB}KB`);
+        send({ step: "ai", label: `Saving to database... (${spSizeKB}KB system prompt)`, status: "received" });
+
+        const dbStart = Date.now();
 
         // Save the completed agent
         const agent = await prisma.agent.update({
@@ -145,15 +162,17 @@ export async function POST(req: NextRequest) {
             botName,
             openingMessage: DEFAULT_OPENING_MESSAGE_TEMPLATE,
             systemPrompt,
-            knowledgeBase: kb.knowledgeBase,
+            knowledgeBase,
             productCount: kb.productCount,
             status: "ready",
           },
         });
 
+        console.log(`[agents] DB save took ${Date.now() - dbStart}ms`);
+
         send({
           step: "ai",
-          label: `Knowledge base built — ${kb.crawledPageCount} pages analyzed`,
+          label: `Done — ${kb.crawledPageCount} pages, ${kbSizeKB}KB knowledge base`,
           done: true,
         });
 
