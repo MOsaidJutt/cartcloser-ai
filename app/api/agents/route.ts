@@ -126,43 +126,44 @@ export async function POST(req: NextRequest) {
         // All AI batches done — now build the system prompt and save
         const kbSizeKB = Math.round(kb.knowledgeBase.length / 1024);
         console.log(`[agents] KB size: ${kbSizeKB}KB, pages: ${kb.crawledPageCount}`);
-        send({ step: "ai", label: `Building system prompt... (KB size: ${kbSizeKB}KB)`, status: "received" });
+        send({ step: "ai", label: `Building system prompt... (${kbSizeKB}KB knowledge base)`, status: "received" });
 
         const botName = generateDefaultBotName(kb.storeName);
 
-        // Cap knowledge base at 400KB to prevent DB timeouts on very large stores
-        const MAX_KB_CHARS = 400_000;
-        const knowledgeBase = kb.knowledgeBase.length > MAX_KB_CHARS
-          ? kb.knowledgeBase.slice(0, MAX_KB_CHARS) + "\n\n[Knowledge base truncated to fit limits]"
+        // Full knowledge base always saved to DB — no truncation.
+        // System prompt gets a capped version: GPT-4o-mini has 128K token context
+        // (~512KB). We cap at 300KB (~75K tokens) leaving ample room for conversation.
+        const MAX_PROMPT_KB_CHARS = 300_000;
+        const kbForPrompt = kb.knowledgeBase.length > MAX_PROMPT_KB_CHARS
+          ? kb.knowledgeBase.slice(0, MAX_PROMPT_KB_CHARS)
           : kb.knowledgeBase;
 
-        if (kb.knowledgeBase.length > MAX_KB_CHARS) {
-          console.warn(`[agents] KB truncated from ${kbSizeKB}KB to 400KB`);
-          send({ step: "ai", label: `KB was ${kbSizeKB}KB — trimmed to 400KB for performance`, status: "received" });
+        if (kb.knowledgeBase.length > MAX_PROMPT_KB_CHARS) {
+          console.log(`[agents] System prompt KB capped at 300KB (full ${kbSizeKB}KB saved to DB)`);
         }
 
         const systemPrompt = buildSystemPrompt({
           botName,
           storeName: kb.storeName,
           storeUrl,
-          knowledgeBase,
+          knowledgeBase: kbForPrompt, // optimised for OpenAI context window
         });
 
         const spSizeKB = Math.round(systemPrompt.length / 1024);
-        console.log(`[agents] System prompt size: ${spSizeKB}KB`);
-        send({ step: "ai", label: `Saving to database... (${spSizeKB}KB system prompt)`, status: "received" });
+        console.log(`[agents] System prompt: ${spSizeKB}KB`);
+        send({ step: "ai", label: `Saving to database... (${spSizeKB}KB prompt, ${kbSizeKB}KB full KB)`, status: "received" });
 
         const dbStart = Date.now();
 
-        // Save the completed agent
+        // Save: full knowledgeBase to DB, capped systemPrompt for chat
         const agent = await prisma.agent.update({
           where: { id: agentId },
           data: {
             storeName: kb.storeName,
             botName,
             openingMessage: DEFAULT_OPENING_MESSAGE_TEMPLATE,
-            systemPrompt,
-            knowledgeBase,
+            systemPrompt,               // capped — optimised for OpenAI
+            knowledgeBase: kb.knowledgeBase, // FULL — no data loss
             productCount: kb.productCount,
             status: "ready",
           },
@@ -172,7 +173,7 @@ export async function POST(req: NextRequest) {
 
         send({
           step: "ai",
-          label: `Done — ${kb.crawledPageCount} pages, ${kbSizeKB}KB knowledge base`,
+          label: `Done — ${kb.crawledPageCount} pages, ${kbSizeKB}KB saved`,
           done: true,
         });
 
